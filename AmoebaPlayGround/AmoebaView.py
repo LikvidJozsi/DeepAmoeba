@@ -1,6 +1,7 @@
 import queue
 import threading
 from tkinter import *
+from typing import List
 
 from AmoebaPlayGround.Amoeba import Symbol, Player
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
@@ -136,11 +137,11 @@ class GraphicalView(AmoebaView, AmoebaAgent):
                 cell.update(new_symbol)
 
     def validate_game_board_update(self, game_board: AmoebaBoard):
-        if self.board_size != game_board.shape:
+        if self.board_size != game_board.get_shape():
             raise Exception("Size of gameboard (%d) does not match size of size of graphical view(%d)" % (
-                game_board.shape, self.board_size))
+                game_board.get_shape(), self.board_size))
 
-    def get_step(self, game_boards):
+    def get_step(self, game_boards: List[AmoebaBoard], player):
         if len(game_boards) != 1:
             raise Exception('GraphicalView does not support multiple parallel matches')
         self.move_entered_event.wait()

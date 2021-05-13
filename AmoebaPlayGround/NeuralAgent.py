@@ -1,5 +1,6 @@
 import glob
 import os
+from abc import ABC, abstractmethod
 from typing import List
 
 import numpy as np
@@ -7,7 +8,7 @@ import tensorflow as tf
 from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Dense, Flatten, Add, BatchNormalization, Activation
 from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import SGD, Adam
+from tensorflow.keras.optimizers import SGD
 
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
@@ -17,7 +18,8 @@ from AmoebaPlayGround.RewardCalculator import TrainingSample
 models_folder = 'Models/'
 
 
-class NetworkModel:
+class NetworkModel(ABC):
+    @abstractmethod
     def create_model(self, map_size):
         pass
 
@@ -78,7 +80,6 @@ class ResNetLike(NetworkModel):
 class NeuralAgent(AmoebaAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = ShallowNetwork()):
-        self.graph = tf.Graph()
         self.model_type = model_type
         if load_latest_model:
             latest_model_file = self.get_latest_model()
@@ -106,8 +107,8 @@ class NeuralAgent(AmoebaAgent):
     def save(self, model_name):
         self.model.save(self.get_model_file_path(model_name))
 
-    def get_step(self, game_boards: List[AmoebaBoard]):
-        output = self.get_model_output(game_boards)
+    def get_step(self, game_boards: List[AmoebaBoard], player):
+        output = self.get_model_output(game_boards, player)
         return self.get_steps_from_output(output, game_boards)
 
     def get_steps_from_output(self, output, game_boards: List[AmoebaBoard]):
@@ -128,6 +129,9 @@ class NeuralAgent(AmoebaAgent):
             steps.append(step)
         return steps
 
+
+
+
     def get_valid_steps(self, probabilites, game_board):
         valid_steps = []
         index = 0
@@ -145,30 +149,20 @@ class NeuralAgent(AmoebaAgent):
     def to_1d(self, index_2d):
         return int(index_2d[0] * self.map_size[0] + index_2d[1])
 
-    def get_model_output(self, game_boards: List[AmoebaBoard]):
-        formatted_input = self.format_input(game_boards)
+    def get_model_output(self, game_boards: List[AmoebaBoard], player):
+        formatted_input = self.format_input(game_boards, player)
         output = self.model.predict(formatted_input, batch_size=256)
         # disclaimer: output has only one spatial dimension, the map is flattened
         return output
 
-    def format_input(self, game_boards: List[AmoebaBoard]):
-        numeric_input = []
+    def format_input(self, game_boards: List[AmoebaBoard],player):
+        numeric_boards = []
         for game_board in game_boards:
-            numeric_input.append(self.one_hot_encode_input(game_board))
-        return np.array(numeric_input)
-
-    def one_hot_encode_input(self, input):
-        numeric_representation = np.zeros(input.shape + (2,))
-        for row_index, row in enumerate(input.cells):
-            for column_index, cell in enumerate(row):
-                if input.perspective == Player.X:
-                    dimension_for_x = 0
-                else:
-                    dimension_for_x = 1
-                if cell == Symbol.X:
-                    numeric_representation[row_index, column_index, dimension_for_x] = 1
-                elif cell == Symbol.O:
-                    numeric_representation[row_index, column_index, 1 - dimension_for_x] = 1
+            numeric_boards.append(game_board.get_numeric_representation_for_player(player))
+        numeric_boards = np.array(numeric_boards)
+        own_pieces = np.array(numeric_boards == player.get_symbol(), dtype='float')
+        opponent_pieces = np.array(numeric_boards == player.get_other_player().get_symbol(), dtype='float')
+        numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
         return numeric_representation
 
     def one_hot_encode_output(self, output):
@@ -186,8 +180,7 @@ class NeuralAgent(AmoebaAgent):
         output = self.one_hot_encode_outputs(output)
         print('number of training samples: ' + str(len(training_samples)))
         input = np.array([self.one_hot_encode_input(x) for x in input])
-        return self.model.fit(x=input, y=np.array(output), sample_weight=np.array(weights), epochs=15,
-                              shuffle=True,
+        return self.model.fit(x=input, y=np.array(output), sample_weight=np.array(weights), epochs=15, shuffle=True,
                               verbose=2, batch_size=32)
 
     def get_weights(self):

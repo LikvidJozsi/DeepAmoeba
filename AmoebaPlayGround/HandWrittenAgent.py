@@ -1,7 +1,8 @@
 import collections
-import random
-
 import math
+import random
+from typing import List
+
 import numpy as np
 
 import AmoebaPlayGround.Amoeba as Amoeba
@@ -109,16 +110,16 @@ class HandWrittenAgent(AmoebaAgent):
     def __init__(self, move_selector: MoveSelectionMethod = AnyFromHighestValueSelection()):
         self.move_selector = move_selector
 
-    def get_step(self, game_boards):
+    def get_step(self, game_boards: List[AmoebaBoard], player):
         steps = []
         for board in game_boards:
             self.board: AmoebaBoard = board
-            steps.append(self.get_step_for_game())
+            steps.append(self.get_step_for_game(player))
         return steps
 
-    def get_step_for_game(self):
-        offensive_importances = self.get_importances(self.board.perspective.get_symbol())
-        defensive_importances = self.get_importances(self.board.perspective.get_other_player().get_symbol())
+    def get_step_for_game(self, player):
+        offensive_importances = self.get_importances(player.get_symbol())
+        defensive_importances = self.get_importances(player.get_other_player().get_symbol())
         highest_offensive_level = self.get_highest_importance_level(offensive_importances)
         highest_defensive_level = self.get_highest_importance_level(defensive_importances)
         if highest_offensive_level >= highest_defensive_level:
@@ -128,8 +129,6 @@ class HandWrittenAgent(AmoebaAgent):
             importances_to_use = defensive_importances
             highest_level = highest_defensive_level
         return self.move_selector.get_step_from_importances(importances_to_use, highest_level)
-
-
 
     def get_highest_importance_level(self, importances):
         max_level = Amoeba.win_sequence_length - 1
@@ -142,7 +141,7 @@ class HandWrittenAgent(AmoebaAgent):
         return highest_level
 
     def get_importances(self, player_symbol):
-        importances = np.empty(self.board.shape, dtype=Importance)
+        importances = np.empty(self.board.get_shape(), dtype=Importance)
         for row_index, row in enumerate(self.board):
             for column_index, cell in enumerate(row):
                 if cell == Symbol.EMPTY:

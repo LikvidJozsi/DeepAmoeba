@@ -19,7 +19,7 @@ class GameGroup:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
             maps = self.get_maps_of_games()
-            actions = next_agent.get_step(maps)
+            actions = next_agent.get_step(maps, next_agent)
             for index, game in enumerate(self.games):
                 game.step(actions[index])
                 if game.has_game_ended():
@@ -38,7 +38,7 @@ class GameGroup:
     def get_maps_of_games(self):
         maps = []
         for game in self.games:
-            maps.append(game.get_map_for_next_player())
+            maps.append(game.map)
         return maps
 
     def get_next_agent(self, game):

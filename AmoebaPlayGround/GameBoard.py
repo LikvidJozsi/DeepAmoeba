@@ -43,14 +43,15 @@ class BoardIterator:
 
 
 class AmoebaBoard:
-    def __init__(self, size, perspective=Player.X):
-        self.cells = np.empty(size, dtype=Symbol)
+    def __init__(self, size):
+        self.cells = np.empty(size, dtype=np.uint8)
         self.cells.fill(Symbol.EMPTY)
-        self.shape = size
-        self.perspective = perspective
 
     def __iter__(self):
         return BoardIterator(self)
+
+    def get_shape(self):
+        return self.cells.shape
 
     def set(self, index, value):
         self.cells[index] = value
@@ -65,10 +66,10 @@ class AmoebaBoard:
         return self.cells.shape[0]
 
     def get_size(self):
-        return np.prod(self.shape)
+        return np.prod(self.get_shape())
 
     def is_within_bounds(self, index):
-        return 0 <= index[0] and index[0] < self.shape[0] and 0 <= index[1] and index[1] < self.shape[1]
+        return 0 <= index[0] and index[0] < self.get_shape()[0] and 0 <= index[1] and index[1] < self.get_shape()[1]
 
     def reset(self):
         self.cells.fill(Symbol.EMPTY)
@@ -77,5 +78,11 @@ class AmoebaBoard:
         return self.cells[index] == Symbol.EMPTY
 
     def get_middle_of_map_index(self):
-        middle_of_map_index = round(self.shape[0] / 2), round(self.shape[1] / 2)
+        middle_of_map_index = round(self.get_shape()[0] / 2), round(self.get_shape()[1] / 2)
         return middle_of_map_index
+
+    def get_numeric_representation_for_player(self, player):
+        map_copy = self.cells.copy()
+        if player == Player.O:
+            map_copy = map_copy * -1
+        return map_copy

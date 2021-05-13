@@ -9,7 +9,7 @@ from AmoebaPlayGround.RewardCalculator import TrainingSample
 
 
 class AmoebaAgent:
-    def get_step(self, game_boards):
+    def get_step(self, game_boards: List[AmoebaBoard], player):
         pass
 
     def train(self, training_samples: List[TrainingSample]):
@@ -23,8 +23,9 @@ class AmoebaAgent:
 
 
 class ConsoleAgent(AmoebaAgent):
-    def get_step(self, game_boards):
-        answers = np.zeros((len(game_boards), 2), dtype='int')
+    def get_step(self, game_boards: List[AmoebaBoard], player):
+        answers = np.zeros((len(game_boards), 2), dtype=np.uint8)
+        print('You are ' + str(player))
         print('Give position in row column format (zero indexing):')
         for index, game_board in enumerate(game_boards):
             answer = input().split(' ')
@@ -38,7 +39,7 @@ class RandomAgent(AmoebaAgent):
     def __init__(self, move_max_distance=2):
         self.max_move_distance = move_max_distance
 
-    def get_step(self, game_boards):
+    def get_step(self, game_boards: List[AmoebaBoard], player):
         steps = []
         for game_board in game_boards:
             steps.append(self.get_step_for_game(game_board))

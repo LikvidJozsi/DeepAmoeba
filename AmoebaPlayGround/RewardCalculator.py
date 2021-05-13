@@ -19,12 +19,12 @@ class TrainingSample:
     def __str__(self):
         return str(self.step) + " " + str(self.reward)
 
+    @staticmethod
     def unpack(training_samples: List['TrainingSample']):
         board_states = list(map(lambda sample: sample.board_state, training_samples))
         steps = list(map(lambda sample: sample.step, training_samples))
         rewards = list(map(lambda sample: sample.reward, training_samples))
         return board_states, steps, rewards
-
 
 
 class PolicyGradients(RewardCalculator):
@@ -35,8 +35,8 @@ class PolicyGradients(RewardCalculator):
         self.reward_for_loss = reward_for_loss
         self.reward_for_tie = reward_for_tie
         self.reward_cutoff_threshold = reward_cutoff_threshold
-        self.teach_with_draws = teach_with_draws
         self.teach_with_losses = teach_with_losses
+        self.teach_with_draws = teach_with_draws
 
     def get_training_data(self, games: List[AmoebaGame]) -> List[TrainingSample]:
         training_samples = []
@@ -49,7 +49,7 @@ class PolicyGradients(RewardCalculator):
         moves = game.get_last_moves(steps_needed)
         winner = game.winner
         if self.teach_with_draws and winner == Player.NOBODY:
-            return self._get_training_samples_from_draw(self, moves)
+            return self._get_training_samples_from_draw(moves, self.reward_for_tie)
         elif winner != Player.NOBODY:
             winner_moves = filter(lambda move: move.player == winner, moves)
             winner_samples = self._get_training_samples(winner_moves, self.reward_for_win)
