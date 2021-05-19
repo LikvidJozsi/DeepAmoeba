@@ -7,7 +7,6 @@ from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
 from AmoebaPlayGround.Input import get_model_filename
 from AmoebaPlayGround.Logger import AmoebaTrainingFileLogger
 from AmoebaPlayGround.NeuralAgent import NeuralAgent
-from AmoebaPlayGround.RewardCalculator import PolicyGradientsWithNegativeTeaching
 
 file_name = get_model_filename()
 
@@ -24,7 +23,6 @@ hand_written_agent = HandWrittenAgent()
 # trainer = AmoebaTrainer(learning_agent, teaching_agents=[random_agent, hand_written_agent], self_play=False,
 #                        reward_calculator=PolicyGradientsWithNegativeTeaching())
 
-trainer = AmoebaTrainer(learning_agent, teaching_agents=[hand_written_agent], self_play=False,
-                        reward_calculator=PolicyGradientsWithNegativeTeaching())
+trainer = AmoebaTrainer(learning_agent, teaching_agents=[hand_written_agent], self_play=False)
 
 trainer.train(batch_size=100, num_episodes=50, model_save_file=file_name, logger=AmoebaTrainingFileLogger(file_name))

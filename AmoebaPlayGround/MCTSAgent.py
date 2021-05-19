@@ -7,8 +7,10 @@ from tensorflow.keras.models import Model
 from tensorflow.python.keras.layers import Dropout
 from tensorflow.python.keras.optimizer_v1 import Adam
 
+from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol, Player
 from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
+from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
 
 
 class PolicyValueNetwork(NetworkModel):
@@ -134,3 +136,19 @@ class MCTSAgent(NeuralAgent):
         search_node.update_expected_value_for_move(chosen_move_2d, v)
         search_node.visited_count += 1
         return -v
+
+    def format_input(self, game_boards: List[np.ndarray]):
+        numeric_boards = np.array(game_boards)
+        # training samples are are already generated so 1 is always the player pieces and -1 the opponents
+        own_pieces = np.array(numeric_boards == 1, dtype='float')
+        opponent_pieces = np.array(numeric_boards == -1, dtype='float')
+        numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
+        return numeric_representation
+
+    def train(self, training_sample_collection: TrainingSampleCollection):
+        print('number of training samples: ' + str(training_sample_collection.get_length()))
+        input = self.format_input(training_sample_collection.board_states)
+        output_policies = np.array(training_sample_collection.move_probabilities)
+        output_values = np.array(training_sample_collection.rewards)
+        return self.model.fit(x=input, y=(output_policies, output_values), epochs=15, shuffle=True, verbose=2,
+                              batch_size=32)

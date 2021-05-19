@@ -1,6 +1,5 @@
 import collections
 import math
-import random
 from typing import List
 
 import numpy as np
@@ -14,95 +13,87 @@ Importance = collections.namedtuple('Importance', 'level value')
 
 class MoveSelectionMethod:
     def get_step_from_importances(self, importances, highest_level):
-        self.reset()
+        self.reset(importances.shape)
         highest_importance_level = highest_level
         highest_importance_value = 0
         for row_index, row in enumerate(importances):
             for column_index, importance in enumerate(row):
-                if importance.level > highest_importance_level:
-                    highest_importance_level = importance.level
-                    highest_importance_value = importance.value
-                    self.new_highest_level_move((row_index, column_index))
-                elif importance.level == highest_importance_level:
-                    self.new_same_level_move((row_index, column_index))
+                if importance.level == highest_importance_level:
+                    self.new_same_level_move((row_index, column_index), importance.value)
                     if importance.value > highest_importance_value:
                         highest_importance_value = importance.value
-                        self.new_highest_value_move((row_index, column_index))
+                        self.new_highest_value_move((row_index, column_index), importance.value)
                     elif importance.value == highest_importance_value:
-                        self.new_same_value_move((row_index, column_index))
+                        self.new_same_value_move((row_index, column_index), importance.value)
         return self.select_move()
 
-    def new_same_value_move(self, move):
+    def new_same_value_move(self, move, value):
         pass
 
-    def new_same_level_move(self, move):
+    def new_same_level_move(self, move, value):
         pass
 
-    def new_highest_level_move(self, move):
+    def new_highest_value_move(self, move, value):
         pass
 
-    def new_highest_value_move(self, move):
+    def reset(self, shape):
         pass
 
-    def reset(self):
-        pass
-
-    def select_move(self) -> tuple:
+    def select_move(self) -> np.ndarray[np.float32]:
         pass
 
 
 class DeterministicMoveSelection(MoveSelectionMethod):
     def __init__(self):
+        self.probabilites = None
         self.best_move = (0, 0)
 
-    def reset(self):
+    def reset(self, shape):
+        self.probabilites = np.zeros(shape, dtype=np.float32)
+        self.probabilites[0, 0] = 1
         self.best_move = (0, 0)
 
-    def new_highest_level_move(self, move):
+    def new_same_level_move(self, move, value):
+        self.probabilites[self.best_move] = 0
+        self.probabilites[move] = value
         self.best_move = move
 
-    def new_highest_value_move(self, move):
-        self.best_move = move
-
-    def select_move(self) -> tuple:
-        return self.best_move
+    def select_move(self) -> np.ndarray[np.float32]:
+        return self.probabilites
 
 
 class AnyFromHighestValueSelection(MoveSelectionMethod):
     def __init__(self):
         self.best_moves = []
+        self.probabilites = None
 
-    def reset(self):
-        self.best_moves = []
+    def reset(self, shape):
+        self.probabilites = np.zeros(shape, dtype=np.float32)
 
-    def new_same_value_move(self, move):
-        self.best_moves.append(move)
+    def new_same_value_move(self, move, value):
+        self.probabilites[move] = value
 
-    def new_highest_level_move(self, move):
-        self.best_moves = [move]
+    def new_highest_value_move(self, move, value):
+        self.probabilites = np.zeros(self.probabilites.shape, dtype=np.float32)
+        self.probabilites[move] = value
 
-    def new_highest_value_move(self, move):
-        self.best_moves = [move]
-
-    def select_move(self) -> tuple:
-        return random.sample(self.best_moves, 1)[0]
+    def select_move(self) -> np.ndarray[np.float32]:
+        return self.probabilites
 
 
 class AnyFromHighestLevelSelection(MoveSelectionMethod):
     def __init__(self):
         self.best_moves = []
+        self.probabilites = None
 
-    def reset(self):
-        self.best_moves = []
+    def reset(self,shape):
+        self.probabilites = np.zeros(shape, dtype=np.float32)
 
-    def new_highest_level_move(self, move):
-        self.best_moves = [move]
+    def new_same_level_move(self, move,value):
+        self.probabilites[move] = value
 
-    def new_same_level_move(self, move):
-        self.best_moves.append(move)
-
-    def select_move(self) -> tuple:
-        return random.sample(self.best_moves, 1)[0]
+    def select_move(self) -> np.ndarray[np.float32]:
+        return self.probabilites
 
 
 class HandWrittenAgent(AmoebaAgent):
@@ -173,7 +164,7 @@ class HandWrittenAgent(AmoebaAgent):
         importances = [vertical_importance, diagonal_importance_1, horizontal_importance, diagonal_importance_2]
         return self.combine_importances(importances)
 
-    def combine_importances(self, importances):
+    def combine_importances(self, importances) -> Importance:
         max_level = 0
         combined_value = 0
         for importance in importances:

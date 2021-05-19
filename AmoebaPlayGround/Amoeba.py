@@ -24,6 +24,9 @@ class AmoebaGame:
         self.map = AmoebaBoard(map_size)
         self.reset()
 
+    def get_board_of_previous_player(self):
+        return self.map.get_numeric_representation_for_player(self.previous_player)
+
     def init_map(self):
         self.map.reset()
         self.place_initial_symbol()
@@ -69,7 +72,7 @@ class AmoebaGame:
 
     def has_game_ended(self):
         last_action = self.history[-1]
-        player_won, is_draw = check_game_ended(self.map, last_action)
+        player_won, is_draw = AmoebaGame.check_game_ended(self.map, last_action)
         if player_won:
             self.winner = self.previous_player
         if is_draw:
@@ -84,28 +87,30 @@ class AmoebaGame:
         x = move[1]
         player_symbol = game_board.get(move)
         player_won = (
-                self.is_there_winning_line_in_direction(game_board, player_symbol, y_start=y - win_sequence_length + 1,
-                                                        x_start=x,
-                                                        y_direction=1, x_direction=0) or  # vertical
-                self.is_there_winning_line_in_direction(game_board, player_symbol, y_start=y - win_sequence_length + 1,
-                                                        x_start=x - win_sequence_length + 1,
-                                                        y_direction=1, x_direction=1) or  # diagonal1
-                self.is_there_winning_line_in_direction(game_board, player_symbol, y_start=y,
-                                                        x_start=x - win_sequence_length + 1,
-                                                        y_direction=0, x_direction=1) or  # horizontal
-                self.is_there_winning_line_in_direction(game_board, player_symbol, y_start=y + win_sequence_length - 1,
-                                                        x_start=x - win_sequence_length + 1,
-                                                        y_direction=-1, x_direction=1))  # diagonal2
-        is_draw = self.is_map_full()
+                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol,
+                                                              y_start=y - win_sequence_length + 1,
+                                                              x_start=x,
+                                                              y_direction=1, x_direction=0) or  # vertical
+                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol,
+                                                              y_start=y - win_sequence_length + 1,
+                                                              x_start=x - win_sequence_length + 1,
+                                                              y_direction=1, x_direction=1) or  # diagonal1
+                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol, y_start=y,
+                                                              x_start=x - win_sequence_length + 1,
+                                                              y_direction=0, x_direction=1) or  # horizontal
+                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol,
+                                                              y_start=y + win_sequence_length - 1,
+                                                              x_start=x - win_sequence_length + 1,
+                                                              y_direction=-1, x_direction=1))  # diagonal2
+        is_draw = AmoebaGame.is_map_full()
         return player_won, is_draw
-
 
     @staticmethod
     def is_map_full(game_board):
         return not Symbol.EMPTY in game_board
 
     @staticmethod
-    def is_there_winning_line_in_direction(game_board,player_symbol, y_start, x_start, y_direction, x_direction):
+    def is_there_winning_line_in_direction(game_board, player_symbol, y_start, x_start, y_direction, x_direction):
         # ....x....
         # only 4 places in each direction count in determining if the new move created a winning condition of
         # a five figure long line

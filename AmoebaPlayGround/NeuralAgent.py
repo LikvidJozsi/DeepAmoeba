@@ -12,8 +12,8 @@ from tensorflow.keras.optimizers import SGD
 
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol, Player
-from AmoebaPlayGround.RewardCalculator import TrainingSample
+from AmoebaPlayGround.GameBoard import AmoebaBoard
+from AmoebaPlayGround.TrainingSampleGenerator import TrainingSample
 
 models_folder = 'Models/'
 
@@ -108,40 +108,7 @@ class NeuralAgent(AmoebaAgent):
         self.model.save(self.get_model_file_path(model_name))
 
     def get_step(self, game_boards: List[AmoebaBoard], player):
-        output = self.get_model_output(game_boards, player)
-        return self.get_steps_from_output(output, game_boards)
-
-    def get_steps_from_output(self, output, game_boards: List[AmoebaBoard]):
-        steps = []
-        for probabilities, game_board in zip(output, game_boards):
-            valid_steps, valid_probabilities = self.get_valid_steps(probabilities, game_board)
-
-            exploitation_probability = np.random.uniform(0, 1)
-            if exploitation_probability < 0.4:
-                max_index = np.argmax(valid_probabilities)
-                step_in_1d = valid_steps[max_index]
-            else:
-                step_in_1d = np.random.choice(valid_steps, p=valid_probabilities)
-
-            # step_in_1d = np.random.choice(valid_steps, p=valid_probabilities)
-
-            step = self.to_2d(step_in_1d)
-            steps.append(step)
-        return steps
-
-
-
-
-    def get_valid_steps(self, probabilites, game_board):
-        valid_steps = []
-        index = 0
-        for row in game_board:
-            for cell in row:
-                if cell == Symbol.EMPTY:
-                    valid_steps.append(index)
-                index += 1
-        valid_probabilities = probabilites[valid_steps]
-        return valid_steps, valid_probabilities / np.sum(valid_probabilities)
+        pass
 
     def to_2d(self, index_1d):
         return (int(np.floor(index_1d / self.map_size[0])), index_1d % self.map_size[0])
@@ -149,39 +116,8 @@ class NeuralAgent(AmoebaAgent):
     def to_1d(self, index_2d):
         return int(index_2d[0] * self.map_size[0] + index_2d[1])
 
-    def get_model_output(self, game_boards: List[AmoebaBoard], player):
-        formatted_input = self.format_input(game_boards, player)
-        output = self.model.predict(formatted_input, batch_size=256)
-        # disclaimer: output has only one spatial dimension, the map is flattened
-        return output
-
-    def format_input(self, game_boards: List[AmoebaBoard],player):
-        numeric_boards = []
-        for game_board in game_boards:
-            numeric_boards.append(game_board.get_numeric_representation_for_player(player))
-        numeric_boards = np.array(numeric_boards)
-        own_pieces = np.array(numeric_boards == player.get_symbol(), dtype='float')
-        opponent_pieces = np.array(numeric_boards == player.get_other_player().get_symbol(), dtype='float')
-        numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
-        return numeric_representation
-
-    def one_hot_encode_output(self, output):
-        expanded_dims = np.zeros(np.prod(self.map_size))
-        output_1d = self.to_1d(output)
-        expanded_dims[output_1d] = 1
-        return expanded_dims
-
-    def one_hot_encode_outputs(self, outputs):
-        one_hot_outputs = list(map(self.one_hot_encode_output, outputs))
-        return np.array(one_hot_outputs)
-
     def train(self, training_samples: List[TrainingSample]):
-        input, output, weights = TrainingSample.unpack(training_samples)
-        output = self.one_hot_encode_outputs(output)
-        print('number of training samples: ' + str(len(training_samples)))
-        input = np.array([self.one_hot_encode_input(x) for x in input])
-        return self.model.fit(x=input, y=np.array(output), sample_weight=np.array(weights), epochs=15, shuffle=True,
-                              verbose=2, batch_size=32)
+        pass
 
     def get_weights(self):
         return self.model.get_weights()
