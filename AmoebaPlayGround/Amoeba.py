@@ -31,6 +31,9 @@ class AmoebaGame:
         self.map.reset()
         self.place_initial_symbol()
 
+    def get_next_player(self):
+        return self.previous_player.get_other_player()
+
     def place_initial_symbol(self):
         self.map.set(self.map.get_middle_of_map_index(), Symbol.X)
 
@@ -46,6 +49,7 @@ class AmoebaGame:
     def step(self, action):
         current_player = self.previous_player.get_other_player()
         player_symbol = current_player.get_symbol()
+        action = tuple(action)
         if not self.map.is_cell_empty(action):
             raise Exception('Trying to place symbol in position already occupied')
         self.map.set(action, player_symbol)
@@ -102,12 +106,12 @@ class AmoebaGame:
                                                               y_start=y + win_sequence_length - 1,
                                                               x_start=x - win_sequence_length + 1,
                                                               y_direction=-1, x_direction=1))  # diagonal2
-        is_draw = AmoebaGame.is_map_full()
+        is_draw = AmoebaGame.is_map_full(game_board)
         return player_won, is_draw
 
     @staticmethod
     def is_map_full(game_board):
-        return not Symbol.EMPTY in game_board
+        return not Symbol.EMPTY.value in game_board.cells
 
     @staticmethod
     def is_there_winning_line_in_direction(game_board, player_symbol, y_start, x_start, y_direction, x_direction):

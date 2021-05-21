@@ -13,7 +13,6 @@ from tensorflow.keras.optimizers import SGD
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard
-from AmoebaPlayGround.TrainingSampleGenerator import TrainingSample
 
 models_folder = 'Models/'
 
@@ -116,7 +115,7 @@ class NeuralAgent(AmoebaAgent):
     def to_1d(self, index_2d):
         return int(index_2d[0] * self.map_size[0] + index_2d[1])
 
-    def train(self, training_samples: List[TrainingSample]):
+    def train(self, training_samples: List[np.ndarray]):
         pass
 
     def get_weights(self):
@@ -131,5 +130,5 @@ class NeuralAgent(AmoebaAgent):
     def get_name(self):
         return 'NeuralAgent'
 
-    def print_model_saummary(self):
+    def print_model_summary(self):
         self.model.summary()

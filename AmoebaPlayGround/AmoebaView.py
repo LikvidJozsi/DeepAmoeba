@@ -2,6 +2,7 @@ import queue
 import threading
 from tkinter import *
 from typing import List
+import numpy as np
 
 from AmoebaPlayGround.Amoeba import Symbol, Player
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
@@ -24,7 +25,7 @@ class ConsoleView(AmoebaView):
                 print(self.get_cell_representation(cell), end='')
             print()
 
-    def get_cell_representation(cell: Symbol):
+    def get_cell_representation(self,cell: Symbol):
         if cell == Symbol.EMPTY:
             return '.'
         if cell == Symbol.X:
@@ -133,7 +134,7 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         self.validate_game_board_update(game_board)
         for row_index, row in enumerate(self.game_board):
             for column_index, cell in enumerate(row):
-                new_symbol = game_board.get((row_index, column_index))
+                new_symbol = Symbol(game_board.get((row_index, column_index)))
                 cell.update(new_symbol)
 
     def validate_game_board_update(self, game_board: AmoebaBoard):
@@ -145,7 +146,9 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         if len(game_boards) != 1:
             raise Exception('GraphicalView does not support multiple parallel matches')
         self.move_entered_event.wait()
-        return [self.clicked_cell, ]
+        action_map = np.zeros(self.board_size)
+        action_map[self.clicked_cell] = 1
+        return [action_map, ]
 
     def display_game_state(self, game_board):
         self.board_update_queue.put(game_board)

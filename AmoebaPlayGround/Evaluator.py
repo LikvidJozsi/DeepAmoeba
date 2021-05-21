@@ -8,9 +8,9 @@ from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
 fix_reference_agents = [ReferenceAgent(name='RandomAgent', instance=RandomAgent(),
-                                       evaluation_match_count=100),
+                                       evaluation_match_count=10),
                         ReferenceAgent(name='HandWrittenAgent', instance=HandWrittenAgent(),
-                                       evaluation_match_count=50)
+                                       evaluation_match_count=10)
                         ]
 
 
@@ -56,9 +56,9 @@ class EloEvaluator(Evaluator):
     def calculate_expected_score(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         game_group_size = int(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
-                                                reference_agent, agent_to_evaluate)
+                                                reference_agent, agent_to_evaluate,log_progress=True)
         game_group_agent_started = GameGroup(game_group_size,
-                                             agent_to_evaluate, reference_agent)
+                                             agent_to_evaluate, reference_agent,log_progress=True)
         finished_games_reference_started, _, _ = game_group_reference_starts.play_all_games()
         finished_games_agent_started, _, _ = game_group_agent_started.play_all_games()
 
@@ -74,9 +74,9 @@ class EloEvaluator(Evaluator):
     def calculate_expected_score_for_rating(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         game_group_size = int(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
-                                                reference_agent, agent_to_evaluate)
+                                                reference_agent, agent_to_evaluate,log_progress=True)
         game_group_agent_started = GameGroup(game_group_size,
-                                             agent_to_evaluate, reference_agent)
+                                             agent_to_evaluate, reference_agent,log_progress=True)
         finished_games_reference_started,_, _ = game_group_reference_starts.play_all_games()
         finished_games_agent_started,_, _ = game_group_agent_started.play_all_games()
 

@@ -21,7 +21,7 @@ class TrainingSampleCollection:
     def extend(self, training_sample_collection):
         self.board_states.extend(training_sample_collection.board_states)
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
-        self.rewards.extend(training_sample_collection.move_probabilities)
+        self.rewards.extend(training_sample_collection.rewards)
 
 
 class TrainingSampleGenerator():

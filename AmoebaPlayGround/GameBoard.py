@@ -1,7 +1,7 @@
 from enum import Enum
 
 import numpy as np
-
+import hashlib
 
 class Symbol(Enum):
     X = 1
@@ -43,9 +43,11 @@ class BoardIterator:
 
 
 class AmoebaBoard:
-    def __init__(self, size):
-        self.cells = np.empty(size, dtype=np.uint8)
-        self.cells.fill(Symbol.EMPTY)
+    def __init__(self, size, cells = None):
+        if cells is None:
+            self.cells = np.zeros(size, dtype=np.int8)
+        else:
+            self.cells = cells
 
     def __iter__(self):
         return BoardIterator(self)
@@ -53,8 +55,8 @@ class AmoebaBoard:
     def get_shape(self):
         return self.cells.shape
 
-    def set(self, index, value):
-        self.cells[index] = value
+    def set(self, index, content):
+        self.cells[index] = content.value
 
     def get(self, index):
         return self.cells[index]
@@ -72,10 +74,10 @@ class AmoebaBoard:
         return 0 <= index[0] and index[0] < self.get_shape()[0] and 0 <= index[1] and index[1] < self.get_shape()[1]
 
     def reset(self):
-        self.cells.fill(Symbol.EMPTY)
+        self.cells.fill(Symbol.EMPTY.value)
 
     def is_cell_empty(self, index):
-        return self.cells[index] == Symbol.EMPTY
+        return self.cells[index] == Symbol.EMPTY.value
 
     def get_middle_of_map_index(self):
         middle_of_map_index = round(self.get_shape()[0] / 2), round(self.get_shape()[1] / 2)
@@ -86,3 +88,13 @@ class AmoebaBoard:
         if player == Player.O:
             map_copy = map_copy * -1
         return map_copy
+
+    def __hash__(self):
+        return hash(hashlib.sha1(self.cells).hexdigest())
+
+    def __eq__(self, other):
+        return np.array_equal(self.cells, other.cells)
+
+    def copy(self):
+        copied_cells = self.cells.copy()
+        return AmoebaBoard(self.get_shape(),copied_cells)

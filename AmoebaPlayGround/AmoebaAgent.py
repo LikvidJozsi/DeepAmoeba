@@ -3,14 +3,13 @@ from typing import List
 import numpy as np
 
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol
-from AmoebaPlayGround.TrainingSampleGenerator import TrainingSample
 
 
 class AmoebaAgent:
-    def get_step(self, game_boards: List[AmoebaBoard], player) -> List[np.ndarray[np.float32]]:
+    def get_step(self, game_boards: List, player) -> List:
         pass
 
-    def train(self, training_samples: List[TrainingSample]):
+    def train(self, training_samples: List):
         pass
 
     def save(self, model_name):
@@ -39,19 +38,20 @@ class RandomAgent(AmoebaAgent):
     def __init__(self, move_max_distance=2):
         self.max_move_distance = move_max_distance
 
-    def get_step(self, game_boards: List[AmoebaBoard], player) -> List[np.ndarray[np.float32]]:
+    def get_step(self, game_boards: List, player) -> List:
         steps = []
         for game_board in game_boards:
-            steps.append(self.get_eligible_cells(game_board))
+            steps.append(self.get_move_probabilities(game_board))
         return steps
 
-    def get_eligible_cells(self, game_board: AmoebaBoard):
+    def get_move_probabilities(self, game_board: AmoebaBoard):
         eligible_cells = np.zeros(game_board.get_shape(), dtype=np.float32)
         for row_index, row in enumerate(game_board):
             for column_index, cell in enumerate(row):
-                if cell == Symbol.EMPTY and self.has_close_symbol(game_board, row_index, column_index):
+                if cell == Symbol.EMPTY.value and self.has_close_symbol(game_board, row_index, column_index):
                     eligible_cells[row_index, column_index] = 1
-        return eligible_cells
+        probabilities = eligible_cells / np.sum(eligible_cells)
+        return probabilities
 
     def has_close_symbol(self, game_board: AmoebaBoard, start_row, start_column):
         for row in range(start_row - self.max_move_distance, start_row + self.max_move_distance):

@@ -1,5 +1,5 @@
 import sys
-
+import numpy as np
 from AmoebaPlayGround.Amoeba import AmoebaGame, Player
 from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
 from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, TrainingSampleCollection
@@ -19,18 +19,23 @@ class GameGroup:
             self.games.append(AmoebaGame(view))
             self.training_sample_generators.append(training_sample_generator_class())
 
+
     def play_all_games(self):
         finished_games = []
         number_of_games = len(self.games)
         training_samples = TrainingSampleCollection()
+        if self.log_progress:
+            print("Playing {count} games between {agent_1} and {agent_2}:".
+                  format(count=number_of_games,agent_1=self.x_agent.get_name(),agent_2=self.o_agent.get_name()))
         while len(self.games) != 0:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
             maps = self.get_maps_of_games()
-            action_probabilities = next_agent.get_step(maps, next_agent)
+            action_probabilities = next_agent.get_step(maps, self.games[0].get_next_player())
             for game, training_sample_generator, action_probabilities in zip(self.games,
                                                                              self.training_sample_generators,
                                                                              action_probabilities):
+
                 action = self.move_selector.select_move(action_probabilities)
                 game.step(action)
                 training_sample_generator.add_move(game.get_board_of_previous_player(), action_probabilities,

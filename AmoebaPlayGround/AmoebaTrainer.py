@@ -16,9 +16,8 @@ class AmoebaTrainer:
         self.teaching_agents = teaching_agents
         self.self_play = self_play
         if self.self_play:
-            # TODO have a factory method so neuralagent doesn't have to be hardcoded
             self.learning_agent_with_old_state = MCTSAgent(model_type=self.learning_agent.model_type)
-            self.teaching_agents.append(self.learning_agent_with_old_state)
+            self.teaching_agents.append(self.learning_agent)
 
     def train(self, batch_size=1, view=None, num_episodes=1, model_save_file="", logger=Logger()):
         self.batch_size = batch_size
@@ -41,6 +40,7 @@ class AmoebaTrainer:
                 aggregate_average_game_length += average_game_length
             aggregate_average_game_length /= float(len(self.teaching_agents))
             logger.log_value(aggregate_average_game_length)
+            self.learning_agent.reset()
 
             if self.self_play:
                 self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)

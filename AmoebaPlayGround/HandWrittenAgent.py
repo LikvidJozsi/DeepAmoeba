@@ -39,7 +39,7 @@ class MoveSelectionMethod:
     def reset(self, shape):
         pass
 
-    def select_move(self) -> np.ndarray[np.float32]:
+    def select_move(self) -> np.ndarray:
         pass
 
 
@@ -55,11 +55,13 @@ class DeterministicMoveSelection(MoveSelectionMethod):
 
     def new_same_level_move(self, move, value):
         self.probabilites[self.best_move] = 0
-        self.probabilites[move] = value
+        self.probabilites[move] = value + 1
         self.best_move = move
 
-    def select_move(self) -> np.ndarray[np.float32]:
-        return self.probabilites
+    def select_move(self) -> np.ndarray:
+        importance_sum = np.sum(self.probabilites)
+        probs = self.probabilites / importance_sum
+        return probs
 
 
 class AnyFromHighestValueSelection(MoveSelectionMethod):
@@ -71,14 +73,15 @@ class AnyFromHighestValueSelection(MoveSelectionMethod):
         self.probabilites = np.zeros(shape, dtype=np.float32)
 
     def new_same_value_move(self, move, value):
-        self.probabilites[move] = value
+        self.probabilites[move] = value + 1
 
     def new_highest_value_move(self, move, value):
         self.probabilites = np.zeros(self.probabilites.shape, dtype=np.float32)
-        self.probabilites[move] = value
+        self.probabilites[move] = value + 1
 
-    def select_move(self) -> np.ndarray[np.float32]:
-        return self.probabilites
+    def select_move(self) -> np.ndarray:
+        probs = self.probabilites / np.sum(self.probabilites)
+        return probs
 
 
 class AnyFromHighestLevelSelection(MoveSelectionMethod):
@@ -90,10 +93,11 @@ class AnyFromHighestLevelSelection(MoveSelectionMethod):
         self.probabilites = np.zeros(shape, dtype=np.float32)
 
     def new_same_level_move(self, move,value):
-        self.probabilites[move] = value
+        self.probabilites[move] = value + 1
 
-    def select_move(self) -> np.ndarray[np.float32]:
-        return self.probabilites
+    def select_move(self) -> np.ndarray:
+        probs = self.probabilites / np.sum(self.probabilites)
+        return probs
 
 
 class HandWrittenAgent(AmoebaAgent):
@@ -123,7 +127,7 @@ class HandWrittenAgent(AmoebaAgent):
 
     def get_highest_importance_level(self, importances):
         max_level = Amoeba.win_sequence_length - 1
-        highest_level = 0
+        highest_level = -10000
         for importance in importances.flat:
             if importance.level > highest_level:
                 highest_level = importance.level
@@ -135,7 +139,7 @@ class HandWrittenAgent(AmoebaAgent):
         importances = np.empty(self.board.get_shape(), dtype=Importance)
         for row_index, row in enumerate(self.board):
             for column_index, cell in enumerate(row):
-                if cell == Symbol.EMPTY:
+                if cell == Symbol.EMPTY.value:
                     importance = self.calculate_importance_for_cell(player_symbol
                                                                     , row_index, column_index)
                 else:
@@ -211,10 +215,10 @@ class HandWrittenAgent(AmoebaAgent):
         sum_own_symbol_distance = 0
         for index in range(window_length):
             cell = self.board.get(cell_index)
-            if cell == player_symbol:
+            if cell == player_symbol.value:
                 own_symbol_count += 1
                 sum_own_symbol_distance += math.fabs(Amoeba.win_sequence_length - 1 - index - window_index)
-            elif cell != Symbol.EMPTY:
+            elif cell != Symbol.EMPTY.value:
                 return Importance(level=0, value=0)
             cell_index = (cell_index[0] + row_direcion, cell_index[1] + column_direction)
         if own_symbol_count == 0:
