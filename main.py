@@ -8,11 +8,13 @@ from AmoebaPlayGround.Input import get_model_filename
 from AmoebaPlayGround.Logger import AmoebaTrainingFileLogger
 from AmoebaPlayGround.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.NeuralAgent import NeuralAgent
+import sys
 
 file_name = get_model_filename()
 
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
+sys.setrecursionlimit(5000)
 
 #gui_agent = GraphicalView(Amoeba.map_size)
 learning_agent = MCTSAgent(load_latest_model=False)

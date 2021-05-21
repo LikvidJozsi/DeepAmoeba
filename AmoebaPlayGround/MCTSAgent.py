@@ -97,7 +97,6 @@ class MCTSAgent(NeuralAgent):
             action_visited_counts = search_node.move_visited_counts
             probabilities = action_visited_counts / np.sum(action_visited_counts)
             action_probabilities.append(probabilities)
-        print(len(self.mcts_nodes))
         return action_probabilities
 
     def get_search_node_of_state(self, board_state, move=None):

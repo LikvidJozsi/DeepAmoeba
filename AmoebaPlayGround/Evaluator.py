@@ -5,6 +5,7 @@ from AmoebaPlayGround.AmoebaAgent import AmoebaAgent, RandomAgent
 from AmoebaPlayGround.GameBoard import Player
 from AmoebaPlayGround.GameGroup import GameGroup
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
+from AmoebaPlayGround.MoveSelector import MaximalMoveSelector, DistributionMoveSelector
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
 fix_reference_agents = [ReferenceAgent(name='RandomAgent', instance=RandomAgent(),
@@ -23,9 +24,12 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, evaluation_match_count=100):
+    def __init__(self, evaluation_match_count=10, move_selector=MaximalMoveSelector(),
+                 self_play_move_selector=DistributionMoveSelector()):
         self.reference_agent = None
         self.reference_agent_rating = None
+        self.move_selector = move_selector
+        self.self_play_move_selector = self_play_move_selector
         self.evaluation_match_count = evaluation_match_count
 
     def evaluate_agent(self, agent: AmoebaAgent):
@@ -56,9 +60,11 @@ class EloEvaluator(Evaluator):
     def calculate_expected_score(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         game_group_size = int(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
-                                                reference_agent, agent_to_evaluate,log_progress=True)
+                                                reference_agent, agent_to_evaluate, log_progress=True,
+                                                move_selector=self.move_selector)
         game_group_agent_started = GameGroup(game_group_size,
-                                             agent_to_evaluate, reference_agent,log_progress=True)
+                                             agent_to_evaluate, reference_agent, log_progress=True,
+                                             move_selector=self.move_selector)
         finished_games_reference_started, _, _ = game_group_reference_starts.play_all_games()
         finished_games_agent_started, _, _ = game_group_agent_started.play_all_games()
 
@@ -74,11 +80,13 @@ class EloEvaluator(Evaluator):
     def calculate_expected_score_for_rating(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         game_group_size = int(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
-                                                reference_agent, agent_to_evaluate,log_progress=True)
+                                                reference_agent, agent_to_evaluate, log_progress=True,
+                                                move_selector=self.self_play_move_selector)
         game_group_agent_started = GameGroup(game_group_size,
-                                             agent_to_evaluate, reference_agent,log_progress=True)
-        finished_games_reference_started,_, _ = game_group_reference_starts.play_all_games()
-        finished_games_agent_started,_, _ = game_group_agent_started.play_all_games()
+                                             agent_to_evaluate, reference_agent, log_progress=True,
+                                             move_selector=self.self_play_move_selector)
+        finished_games_reference_started, _, _ = game_group_reference_starts.play_all_games()
+        finished_games_agent_started, _, _ = game_group_agent_started.play_all_games()
 
         games_agent_won, games_reference_won, draw_games = self.get_win_statistics(finished_games_agent_started)
         won_by_reference, lost_by_reference, draw = self.get_win_statistics(finished_games_reference_started)
