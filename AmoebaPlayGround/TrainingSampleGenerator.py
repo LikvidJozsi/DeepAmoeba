@@ -4,7 +4,7 @@ from AmoebaPlayGround.GameBoard import Player
 
 
 class TrainingSampleCollection:
-    def __init__(self, board_states=None, move_probabilities=None, rewards=None):
+    def __init__(self, board_states=None, move_probabilities=None, rewards=None, max_size = 20000):
         if rewards is None:
             rewards = []
         if board_states is None:
@@ -14,11 +14,20 @@ class TrainingSampleCollection:
         self.board_states = board_states
         self.move_probabilities = move_probabilities
         self.rewards = rewards
+        self.max_size = max_size
 
     def get_length(self):
         return len(self.rewards)
 
+    def remove_samples_from_front(self,count):
+        self.board_states = self.board_states[count:]
+        self.move_probabilities = self.move_probabilities[count:]
+        self.rewards = self.rewards[count:]
+
     def extend(self, training_sample_collection):
+        free_space = self.max_size - self.get_length()
+        samples_to_remove = max(training_sample_collection.get_length()-free_space,0)
+        self.remove_samples_from_front(samples_to_remove)
         self.board_states.extend(training_sample_collection.board_states)
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
         self.rewards.extend(training_sample_collection.rewards)
