@@ -22,7 +22,7 @@ class AmoebaTrainer:
         self.evaluator = EloEvaluator(move_selector=evaluation_move_selector,
                                       self_play_move_selector=training_move_selector)
         self.self_play = self_play
-        self.training_samples = TrainingSampleCollection(trainingset_size)
+        self.training_samples = TrainingSampleCollection(max_size=trainingset_size)
         if self.self_play:
             self.learning_agent_with_old_state = MCTSAgent(model_type=self.learning_agent.model_type)
             self.teaching_agents.append(self.learning_agent)
