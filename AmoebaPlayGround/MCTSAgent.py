@@ -41,8 +41,8 @@ class MCTSNode:
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False):
         self.board_state: AmoebaBoard = board_state
         self.expected_move_rewards: np.ndarray[np.float32] = np.zeros(board_state.get_shape(), dtype=np.float32)
-        self.move_visited_counts: np.ndarray[np.int32] = np.zeros(board_state.get_shape(), dtype=np.int32)
-        self.valid_moves = np.array(board_state.cells == Symbol.EMPTY.value, dtype=np.int8)
+        self.move_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
+        self.invalid_moves = board_state.cells != Symbol.EMPTY.value
         self.visited_count = 0
         self.neural_network_policy = None
         self.game_has_ended = has_game_ended
@@ -76,7 +76,7 @@ class MCTSNode:
 class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = PolicyValueNetwork(), simulation_count=10, exploration_rate=1.4):
+                 model_type: NetworkModel = PolicyValueNetwork(), simulation_count=100, exploration_rate=1.4):
         super().__init__(model_name, load_latest_model, model_type)
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
         self.simulation_count = simulation_count
@@ -109,15 +109,16 @@ class MCTSAgent(NeuralAgent):
             self.mcts_nodes[board_state] = new_node
             return new_node
 
-    def get_probability_distribution(self, game_board, player,valid_moves):
-        game_board = game_board.cells
+    def get_probability_distribution(self, search_node, player):
+        game_board = search_node.board_state.cells
         formatted_input = self.format_input([game_board], player)
         output_1d, value = self.model.predict(formatted_input, batch_size=256)
         output_2d = output_1d.reshape(game_board.shape)
-        output_2d = output_2d * valid_moves
+
+        output_2d = output_2d * np.logical_not(search_node.invalid_moves)
         if np.sum(output_2d) == 0:
             print("all zero output")
-            output_2d += valid_moves
+            output_2d += search_node.valid_moves
         return output_2d / np.sum(output_2d), value
 
     def runSimulation(self, search_node, player,depth):
@@ -128,7 +129,7 @@ class MCTSAgent(NeuralAgent):
 
         # we have not visited this node yet
         if search_node.neural_network_policy is None:
-            policy, value = self.get_probability_distribution(search_node.board_state, player,search_node.valid_moves)
+            policy, value = self.get_probability_distribution(search_node,player)
             search_node.neural_network_policy = policy
             return -value
 
@@ -136,6 +137,7 @@ class MCTSAgent(NeuralAgent):
         upper_confidence_bounds = search_node.expected_move_rewards + self.exploration_rate * \
                                   search_node.neural_network_policy * np.sqrt(search_node.visited_count + 1e-8) / \
                                   (1 + search_node.move_visited_counts)
+        upper_confidence_bounds[search_node.invalid_moves] = -np.inf
         chosen_move = np.argmax(upper_confidence_bounds)
         chosen_move_2d = tuple(np.unravel_index(chosen_move, search_node.board_state.get_shape()))
         new_board_state = search_node.get_board_state_for_move(chosen_move_2d, player)
@@ -161,7 +163,7 @@ class MCTSAgent(NeuralAgent):
         input = self.format_input(samples.board_states)
         output_policies = np.array(samples.move_probabilities).reshape((samples.get_length(), -1))
         output_values = np.array(samples.rewards)
-        return self.model.fit(x=input, y=[output_policies, output_values], epochs=15, shuffle=True, verbose=2,
+        return self.model.fit(x=input, y=[output_policies, output_values], epochs=30, shuffle=True, verbose=2,
                               batch_size=32)
 
     def get_name(self):
