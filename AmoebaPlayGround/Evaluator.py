@@ -58,7 +58,7 @@ class EloEvaluator(Evaluator):
         return agent_rating
 
     def calculate_expected_score(self, agent_to_evaluate, reference_agent, evaluation_match_count):
-        game_group_size = int(evaluation_match_count / 2)
+        game_group_size = math.ceil(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
                                                 reference_agent, agent_to_evaluate, log_progress=True,
                                                 move_selector=self.move_selector)
@@ -78,7 +78,7 @@ class EloEvaluator(Evaluator):
         return agent_expected_score
 
     def calculate_expected_score_for_rating(self, agent_to_evaluate, reference_agent, evaluation_match_count):
-        game_group_size = int(evaluation_match_count / 2)
+        game_group_size = math.ceil(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
                                                 reference_agent, agent_to_evaluate, log_progress=True,
                                                 move_selector=self.self_play_move_selector)

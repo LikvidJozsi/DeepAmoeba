@@ -4,9 +4,9 @@ from tkinter import *
 from typing import List
 import numpy as np
 
-from AmoebaPlayGround.Amoeba import Symbol, Player
+from AmoebaPlayGround.Amoeba import Player
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.GameBoard import AmoebaBoard
+from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL, X_SYMBOL, O_SYMBOL
 
 
 # The display function of a view is called by the AmoebaGame at init time and after every move
@@ -25,12 +25,12 @@ class ConsoleView(AmoebaView):
                 print(self.get_cell_representation(cell), end='')
             print()
 
-    def get_cell_representation(self,cell: Symbol):
-        if cell == Symbol.EMPTY:
+    def get_cell_representation(self,cell: int):
+        if cell == EMPTY_SYMBOL:
             return '.'
-        if cell == Symbol.X:
+        if cell == X_SYMBOL:
             return 'x'
-        if cell == Symbol.O:
+        if cell == O_SYMBOL:
             return 'o'
         raise Exception('Unknown cell value')
 
@@ -43,7 +43,7 @@ class ConsoleView(AmoebaView):
 
 class BoardCell:
     def __init__(self, window, row, column, symbol_size):
-        self.symbol = Symbol.EMPTY
+        self.symbol = EMPTY_SYMBOL
         self.symbol_size = symbol_size
         self.row = row
         self.column = column
@@ -55,14 +55,14 @@ class BoardCell:
         self.canvas.bind("<Button-1>", click_event_handler)
 
     def is_empty(self):
-        return self.symbol == Symbol.EMPTY
+        return self.symbol == EMPTY_SYMBOL
 
     def update(self, new_symbol):
         if self.symbol != new_symbol:
             self.canvas.delete("all")
-            if new_symbol == Symbol.X:
+            if new_symbol == X_SYMBOL:
                 self.drawX()
-            elif new_symbol == Symbol.O:
+            elif new_symbol == O_SYMBOL:
                 self.drawO()
             self.symbol = new_symbol
 
@@ -134,7 +134,7 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         self.validate_game_board_update(game_board)
         for row_index, row in enumerate(self.game_board):
             for column_index, cell in enumerate(row):
-                new_symbol = Symbol(game_board.get((row_index, column_index)))
+                new_symbol = game_board.get((row_index, column_index))
                 cell.update(new_symbol)
 
     def validate_game_board_update(self, game_board: AmoebaBoard):

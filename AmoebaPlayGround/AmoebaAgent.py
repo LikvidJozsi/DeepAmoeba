@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol
+from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
 
 
 class AmoebaAgent:
@@ -48,7 +48,7 @@ class RandomAgent(AmoebaAgent):
         eligible_cells = np.zeros(game_board.get_shape(), dtype=np.float32)
         for row_index, row in enumerate(game_board):
             for column_index, cell in enumerate(row):
-                if cell == Symbol.EMPTY.value and self.has_close_symbol(game_board, row_index, column_index):
+                if cell == EMPTY_SYMBOL and self.has_close_symbol(game_board, row_index, column_index):
                     eligible_cells[row_index, column_index] = 1
         probabilities = eligible_cells / np.sum(eligible_cells)
         return probabilities

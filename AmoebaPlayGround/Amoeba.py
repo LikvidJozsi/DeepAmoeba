@@ -1,7 +1,7 @@
 import copy
 from typing import List
 
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol, Player
+from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMBOL
 
 win_sequence_length = 5
 map_size = (8, 8)
@@ -35,7 +35,7 @@ class AmoebaGame:
         return self.previous_player.get_other_player()
 
     def place_initial_symbol(self):
-        self.map.set(self.map.get_middle_of_map_index(), Symbol.X)
+        self.map.set(self.map.get_middle_of_map_index(), X_SYMBOL)
 
     def reset(self):
         self.init_map()
@@ -68,7 +68,7 @@ class AmoebaGame:
         player = self.previous_player
         for index in range(number_of_steps):
             step = self.history[len(self.history) - index - 1]
-            map.set(step, Symbol.EMPTY)
+            map.set(step, EMPTY_SYMBOL)
             move = Move(copy.deepcopy(map), step, player)
             moves.append(move)
             player = player.get_other_player()
@@ -111,7 +111,7 @@ class AmoebaGame:
 
     @staticmethod
     def is_map_full(game_board):
-        return not Symbol.EMPTY.value in game_board.cells
+        return not EMPTY_SYMBOL in game_board.cells
 
     @staticmethod
     def is_there_winning_line_in_direction(game_board, player_symbol, y_start, x_start, y_direction, x_direction):

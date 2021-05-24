@@ -2,19 +2,19 @@ import copy
 from typing import List, Dict
 
 import numpy as np
-from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation
+from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, Reshape
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers import Dropout
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol, Player
+from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, EMPTY_SYMBOL
 from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
 from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
 
 
 class PolicyValueNetwork(NetworkModel):
-    def __init__(self, first_convolution_size=(9, 9), dropout=0.5):
+    def __init__(self, first_convolution_size=(9, 9), dropout=0.4):
         self.first_convolution_size = first_convolution_size
         self.dropout = dropout
 
@@ -23,17 +23,18 @@ class PolicyValueNetwork(NetworkModel):
         conv_1 = Activation('relu')(
             BatchNormalization(axis=3)(Conv2D(32, kernel_size=self.first_convolution_size, padding='same')(input)))
         conv_2 = Activation('relu')(BatchNormalization(axis=3)(
-            Conv2D(64, kernel_size=(3, 3), strides=(2, 2), activation='relu', padding='same')(conv_1)))
+            Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_1)))
         conv_3 = Activation('relu')(
-            BatchNormalization(axis=3)(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same')(conv_2)))
+            BatchNormalization(axis=3)(Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_2)))
         flatten = Flatten()(conv_3)
-        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(256, activation='relu')(flatten)))
+        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(flatten)))
         dense_2 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(dense_1)))
-        policy = Dense(np.prod(map_size), activation='softmax')(dense_1)
+        policy_conv = Conv2D(1, kernel_size=(3, 3), activation='softmax', padding='same')(conv_3)
+        policy = Reshape(map_size)(policy_conv)
         value = Dense(1, activation='tanh')(dense_2)
 
         model = Model(inputs=input, outputs=[policy, value])
-        model.compile(loss=['categorical_crossentropy','mean_squared_error'], optimizer=Adam(lr=0.3))
+        model.compile(loss=['categorical_crossentropy','mean_squared_error'], optimizer=Adam(lr=0.002))
         return model
 
 
@@ -42,7 +43,7 @@ class MCTSNode:
         self.board_state: AmoebaBoard = board_state
         self.expected_move_rewards: np.ndarray[np.float32] = np.zeros(board_state.get_shape(), dtype=np.float32)
         self.move_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
-        self.invalid_moves = board_state.cells != Symbol.EMPTY.value
+        self.invalid_moves = board_state.cells != EMPTY_SYMBOL
         self.visited_count = 0
         self.neural_network_policy = None
         self.game_has_ended = has_game_ended
@@ -149,7 +150,7 @@ class MCTSAgent(NeuralAgent):
 
     def format_input(self, game_boards: List[np.ndarray], player=None):
         if player is not None:
-            own_symbol = player.get_symbol().value
+            own_symbol = player.get_symbol()
         else:
             own_symbol = 1
         numeric_boards = np.array(game_boards)
@@ -161,10 +162,10 @@ class MCTSAgent(NeuralAgent):
     def train(self, samples: TrainingSampleCollection):
         print('number of training samples: ' + str(samples.get_length()))
         input = self.format_input(samples.board_states)
-        output_policies = np.array(samples.move_probabilities).reshape((samples.get_length(), -1))
+        output_policies = np.array(samples.move_probabilities)
         output_values = np.array(samples.rewards)
         return self.model.fit(x=input, y=[output_policies, output_values], epochs=30, shuffle=True, verbose=2,
-                              batch_size=32)
+                              batch_size=64)
 
     def get_name(self):
         return 'MCTSAgent'

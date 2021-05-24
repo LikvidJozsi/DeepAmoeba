@@ -6,7 +6,7 @@ import numpy as np
 
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Symbol
+from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
 
 Importance = collections.namedtuple('Importance', 'level value')
 
@@ -139,7 +139,7 @@ class HandWrittenAgent(AmoebaAgent):
         importances = np.empty(self.board.get_shape(), dtype=Importance)
         for row_index, row in enumerate(self.board):
             for column_index, cell in enumerate(row):
-                if cell == Symbol.EMPTY.value:
+                if cell == EMPTY_SYMBOL:
                     importance = self.calculate_importance_for_cell(player_symbol
                                                                     , row_index, column_index)
                 else:
@@ -215,10 +215,10 @@ class HandWrittenAgent(AmoebaAgent):
         sum_own_symbol_distance = 0
         for index in range(window_length):
             cell = self.board.get(cell_index)
-            if cell == player_symbol.value:
+            if cell == player_symbol:
                 own_symbol_count += 1
                 sum_own_symbol_distance += math.fabs(Amoeba.win_sequence_length - 1 - index - window_index)
-            elif cell != Symbol.EMPTY.value:
+            elif cell != EMPTY_SYMBOL:
                 return Importance(level=0, value=0)
             cell_index = (cell_index[0] + row_direcion, cell_index[1] + column_direction)
         if own_symbol_count == 0:

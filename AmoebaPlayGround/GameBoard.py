@@ -3,10 +3,9 @@ from enum import Enum
 import numpy as np
 import hashlib
 
-class Symbol(Enum):
-    X = 1
-    O = -1
-    EMPTY = 0
+EMPTY_SYMBOL = 0
+X_SYMBOL = 1
+O_SYMBOL = -1
 
 
 class Player(Enum):
@@ -22,9 +21,9 @@ class Player(Enum):
 
     def get_symbol(self):
         if self == Player.X:
-            return Symbol.X
+            return X_SYMBOL
         elif self == Player.O:
-            return Symbol.O
+            return O_SYMBOL
         else:
             return None
 
@@ -56,7 +55,7 @@ class AmoebaBoard:
         return self.cells.shape
 
     def set(self, index, content):
-        self.cells[index] = content.value
+        self.cells[index] = content
 
     def get(self, index):
         return self.cells[index]
@@ -74,10 +73,10 @@ class AmoebaBoard:
         return 0 <= index[0] and index[0] < self.get_shape()[0] and 0 <= index[1] and index[1] < self.get_shape()[1]
 
     def reset(self):
-        self.cells.fill(Symbol.EMPTY.value)
+        self.cells.fill(EMPTY_SYMBOL)
 
     def is_cell_empty(self, index):
-        return self.cells[index] == Symbol.EMPTY.value
+        return self.cells[index] == EMPTY_SYMBOL
 
     def get_middle_of_map_index(self):
         middle_of_map_index = round(self.get_shape()[0] / 2), round(self.get_shape()[1] / 2)

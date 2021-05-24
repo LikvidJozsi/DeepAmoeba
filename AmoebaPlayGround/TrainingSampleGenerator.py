@@ -12,8 +12,8 @@ class TrainingSampleCollection:
         if move_probabilities is None:
             move_probabilities = []
         self.board_states = board_states[0:min(max_size,len(board_states))]
-        self.move_probabilities = move_probabilities[0:min(max_size,len(board_states))]
-        self.rewards = rewards[0:min(max_size,len(board_states))]
+        self.move_probabilities = move_probabilities[0:min(max_size,len(move_probabilities))]
+        self.rewards = rewards[0:min(max_size,len(rewards))]
         self.max_size = max_size
 
     def get_length(self):
