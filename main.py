@@ -5,7 +5,7 @@ from AmoebaPlayGround.AmoebaView import GraphicalView
 from AmoebaPlayGround.Evaluator import EloEvaluator
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
 from AmoebaPlayGround.Input import get_model_filename
-from AmoebaPlayGround.Logger import AmoebaTrainingFileLogger
+from AmoebaPlayGround.Logger import FileLogger
 from AmoebaPlayGround.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.NeuralAgent import NeuralAgent
 import sys
@@ -28,4 +28,4 @@ hand_written_agent = HandWrittenAgent()
 
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True)
 
-trainer.train(batch_size=10, num_episodes=50, model_save_file=file_name, logger=AmoebaTrainingFileLogger(file_name))
+trainer.train(batch_size=10, num_episodes=15, model_save_file=file_name, logger=FileLogger(file_name))

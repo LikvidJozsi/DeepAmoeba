@@ -1,23 +1,18 @@
 import os
 
+from typing.io import IO
+
 from AmoebaPlayGround.Evaluator import fix_reference_agents
 
 
+logs_folder = 'Logs/'
+field_separator = ','
+
 class Logger:
-    def log(self, message):
+    def new_episode(self):
         pass
 
-    def newline(self):
-        self.log("\n")
-
-    def log_newline(self, message):
-        self.log(message)
-        self.newline(self)
-
-    def log_value(self, message):
-        pass
-
-    def close(self):
+    def log(self, key, message):
         pass
 
 
@@ -27,39 +22,37 @@ class FileLogger(Logger):
             raise Exception("Bad string received.")
 
         self.log_file_name = log_file_name
-        self.logs_folder = 'Logs/'
-        self.log_file_path = self.log_file_name + ".log"
-        self.log_file_path = os.path.join(self.logs_folder, self.log_file_path)
-        self.log_file = open(self.log_file_path, mode="a+", newline='')
+        self.log_file_path = self.log_file_name + ".csv"
+        self.log_file_path = os.path.join(logs_folder, self.log_file_path)
+        self.headers = []
+        self.field_names = []
+        self.field_values = []
 
-    def log(self, message):
-        self.log_file.write(message)
-        # So that interrupt won't delete full content.
-        self.log_file.flush()
-
-    def close(self):
-        self.log_file.close()
+    def log(self,key, value):
+        self.field_names.append(key)
+        self.field_values.append(str(value))
 
 
-class AmoebaTrainingFileLogger(FileLogger):
-    def __init__(self, log_file_path):
-        super().__init__(log_file_path)
+    def new_episode(self):
+        with open(self.log_file_path, mode="a", newline='') as log_file:
+            if len(self.headers) == 0:
+                self.headers = self.field_names
+                self._write_line(log_file,self.headers)
+            self._write_line(log_file,self.field_values)
+            self.field_names = []
+            self.field_values = []
 
-        self.log("episode\taverage_game_length\tloss\trating\t")
-        for reference_agent in fix_reference_agents:
-            self.log("%s\t" % reference_agent.name)
+    def validate_fields(self,headers,field_names):
+        for field_name in field_names:
+            if field_name not in headers:
+                raise Exception("Field name not found among headers: " + field_name)
 
-        self.newline()
+    def _write_line(self,file: IO, fields):
+        fields_string = field_separator.join(fields)
+        file.write(fields_string + "\n")
 
-    def log_value(self, message):
-        self.log(f"{message}\t")
 
 
-# class ConsoleLogger(Logger):
-#     def log(self, message):
-#         print(message)
-#
-#
-# class AmoebaTrainingConsoleLogger(ConsoleLogger):
-#     def log_value(self, message):
-#         print("WRITE SOMETHING")
+class ConsoleLogger(Logger):
+    def log(self,key, message):
+        print(key + ": " + str(message))
