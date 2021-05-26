@@ -35,7 +35,6 @@ class GameGroup:
             for game, training_sample_generator, action_probabilities in zip(self.games,
                                                                              self.training_sample_generators,
                                                                              action_probabilities):
-
                 action = self.move_selector.select_move(action_probabilities)
                 game.step(action)
                 training_sample_generator.add_move(game.get_board_of_previous_player(), action_probabilities,

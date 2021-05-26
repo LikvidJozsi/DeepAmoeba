@@ -1,41 +1,12 @@
-import copy
 from typing import List, Dict
 
 import numpy as np
-from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, Reshape
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
-from tensorflow.python.keras.layers import Dropout
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, EMPTY_SYMBOL
+from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
+from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
 from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
-
-
-class PolicyValueNetwork(NetworkModel):
-    def __init__(self, first_convolution_size=(9, 9), dropout=0.4):
-        self.first_convolution_size = first_convolution_size
-        self.dropout = dropout
-
-    def create_model(self, map_size):
-        input = Input(shape=map_size + (2,))
-        conv_1 = Activation('relu')(
-            BatchNormalization(axis=3)(Conv2D(32, kernel_size=self.first_convolution_size, padding='same')(input)))
-        conv_2 = Activation('relu')(BatchNormalization(axis=3)(
-            Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_1)))
-        conv_3 = Activation('relu')(
-            BatchNormalization(axis=3)(Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_2)))
-        flatten = Flatten()(conv_3)
-        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(flatten)))
-        dense_2 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(dense_1)))
-        policy_conv = Conv2D(1, kernel_size=(3, 3), activation='softmax', padding='same')(conv_3)
-        policy = Reshape(map_size)(policy_conv)
-        value = Dense(1, activation='tanh')(dense_2)
-
-        model = Model(inputs=input, outputs=[policy, value])
-        model.compile(loss=['categorical_crossentropy','mean_squared_error'], optimizer=Adam(lr=0.002))
-        return model
 
 
 class MCTSNode:
@@ -78,7 +49,7 @@ class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), simulation_count=100, exploration_rate=1.4):
-        super().__init__(model_name, load_latest_model, model_type)
+        super().__init__(model_type, model_name, load_latest_model)
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
         self.simulation_count = simulation_count
         self.exploration_rate = exploration_rate
@@ -91,7 +62,7 @@ class MCTSAgent(NeuralAgent):
             for game_board in game_boards:
                 board_copy = game_board.copy()
                 search_node = self.get_search_node_of_state(board_copy)
-                self.runSimulation(search_node, player,0)
+                self.runSimulation(search_node, player, 0)
         action_probabilities = []
         for game_board in game_boards:
             search_node = self.get_search_node_of_state(game_board)
@@ -122,7 +93,7 @@ class MCTSAgent(NeuralAgent):
             output_2d += search_node.valid_moves
         return output_2d / np.sum(output_2d), value
 
-    def runSimulation(self, search_node, player,depth):
+    def runSimulation(self, search_node, player, depth):
         # the game ended on this this node
         if search_node.game_has_ended:
             # the reward for the previous player is the opposite of the reward for the next player
@@ -130,7 +101,7 @@ class MCTSAgent(NeuralAgent):
 
         # we have not visited this node yet
         if search_node.neural_network_policy is None:
-            policy, value = self.get_probability_distribution(search_node,player)
+            policy, value = self.get_probability_distribution(search_node, player)
             search_node.neural_network_policy = policy
             return -value
 
@@ -143,7 +114,7 @@ class MCTSAgent(NeuralAgent):
         chosen_move_2d = tuple(np.unravel_index(chosen_move, search_node.board_state.get_shape()))
         new_board_state = search_node.get_board_state_for_move(chosen_move_2d, player)
         next_node = self.get_search_node_of_state(new_board_state, chosen_move_2d)
-        v = self.runSimulation(next_node, player.get_other_player(),depth+1)
+        v = self.runSimulation(next_node, player.get_other_player(), depth + 1)
         search_node.update_expected_value_for_move(chosen_move_2d, v)
         search_node.visited_count += 1
         return -v
