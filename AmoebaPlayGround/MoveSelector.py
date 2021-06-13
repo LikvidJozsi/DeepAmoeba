@@ -11,7 +11,7 @@ class MaximalMoveSelector(MoveSelector):
         max_probability = np.max(probabilities)
         bestActions = np.array(np.argwhere(max_probability == probabilities))
         chosenActionIndex = np.random.randint(len(bestActions))
-        return bestActions[chosenActionIndex]
+        return tuple(bestActions[chosenActionIndex])
 
 
 class DistributionMoveSelector(MoveSelector):

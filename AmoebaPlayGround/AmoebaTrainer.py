@@ -1,4 +1,5 @@
 from AmoebaPlayGround import AmoebaAgent
+from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.Evaluator import EloEvaluator
 from AmoebaPlayGround.Evaluator import fix_reference_agents
 from AmoebaPlayGround.GameGroup import GameGroup
@@ -24,7 +25,7 @@ class AmoebaTrainer:
         self.self_play = self_play
         self.training_samples = TrainingSampleCollection(max_size=trainingset_size)
         if self.self_play:
-            self.learning_agent_with_old_state = MCTSAgent(model_type=self.learning_agent.model_type)
+            self.learning_agent_with_old_state = BatchMCTSAgent(model_type=self.learning_agent.model_type)
             self.teaching_agents.append(self.learning_agent)
 
     def train(self, batch_size=1, view=None, num_episodes=1, model_save_file="", logger=Logger()):

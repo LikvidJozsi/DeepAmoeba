@@ -1,4 +1,5 @@
 import sys
+import time
 
 from AmoebaPlayGround.Amoeba import AmoebaGame, Player
 from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
@@ -31,7 +32,9 @@ class GameGroup:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
             maps = self.get_maps_of_games()
+            time_before_step = time.time()
             action_probabilities = next_agent.get_step(maps, self.games[0].get_next_player())
+            time_after_step = time.time()
             for game, training_sample_generator, action_probabilities in zip(self.games,
                                                                              self.training_sample_generators,
                                                                              action_probabilities):
@@ -45,7 +48,7 @@ class GameGroup:
                     training_samples.extend(training_samples_from_game)
             self.games = [game for game in self.games if not game in finished_games]
             turn_number += 1
-            self.print_progress(len(finished_games) / number_of_games, turn_number)
+            self.print_progress(len(finished_games) / number_of_games, turn_number,time_after_step-time_before_step)
 
         return (finished_games, training_samples, self.get_average_game_length(finished_games))
 
@@ -67,7 +70,7 @@ class GameGroup:
         else:
             return self.x_agent
 
-    def print_progress(self, progress, turn):
+    def print_progress(self, progress, turn,time):
         if self.log_progress:
             barLength = 20
             status = "in progress"
@@ -75,8 +78,8 @@ class GameGroup:
                 progress = 1
                 status = "done\r\n"
             block = int(round(barLength * progress))
-            text = "\r[{0}] {1}%, turn number: {2} , status: {3}".format("#" * block + "-" * (barLength - block),
+            text = "\r[{0}] {1}%, turn number: {2} , status: {3}, turn time: {4}".format("#" * block + "-" * (barLength - block),
                                                                          progress * 100, turn,
-                                                                         status)
+                                                                         status,time)
             sys.stdout.write(text)
             sys.stdout.flush()

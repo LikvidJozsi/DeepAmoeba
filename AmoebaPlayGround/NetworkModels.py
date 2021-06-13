@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import numpy as np
 from tensorflow.python.keras import regularizers
 
 from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, Reshape, Add
@@ -22,18 +22,18 @@ class PolicyValueNetwork(NetworkModel):
         conv_1 = Activation('relu')(
             BatchNormalization(axis=3)(Conv2D(32, kernel_size=self.first_convolution_size, padding='same')(input)))
         conv_2 = Activation('relu')(BatchNormalization(axis=3)(
-            Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_1)))
+            Conv2D(64, kernel_size=(3, 3), strides=(2, 2), activation='relu', padding='same')(conv_1)))
         conv_3 = Activation('relu')(
-            BatchNormalization(axis=3)(Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(conv_2)))
+            BatchNormalization(axis=3)(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same')(conv_2)))
         flatten = Flatten()(conv_3)
-        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(flatten)))
+        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(256, activation='relu')(flatten)))
         dense_2 = Dropout(self.dropout)(Activation('relu')(Dense(128, activation='relu')(dense_1)))
-        policy_conv = Conv2D(1, kernel_size=(3, 3), activation='softmax', padding='same')(conv_3)
-        policy = Reshape(map_size)(policy_conv)
+        policy = Dense(np.prod(map_size), activation='softmax')(dense_1)
+        policy = Reshape(map_size)(policy)
         value = Dense(1, activation='tanh')(dense_2)
 
         model = Model(inputs=input, outputs=[policy, value])
-        model.compile(loss=['categorical_crossentropy','mean_squared_error'], optimizer=Adam(lr=0.002))
+        model.compile(loss=['categorical_crossentropy','mean_squared_error'], optimizer=Adam(lr=0.001))
         return model
 
 

@@ -1,18 +1,170 @@
+import copy
 from typing import List
 
+import numpy as np
+
 from AmoebaPlayGround.GameBoard import AmoebaBoard
-from AmoebaPlayGround.MCTSAgent import MCTSAgent
+from AmoebaPlayGround.MCTSAgent import MCTSAgent, MCTSNode
+from AmoebaPlayGround.NetworkModels import NetworkModel, PolicyValueNetwork
+
+
+class PositionToSearch:
+    def __init__(self, search_node: MCTSNode, searches_remaining: int, id: int):
+        self.search_node = search_node
+        self.searches_remaining = searches_remaining
+        self.id = id
+
+    def finished_search(self):
+        return self.searches_remaining < 1
 
 
 class BatchMCTSAgent(MCTSAgent):
+    def __init__(self, model_name=None, load_latest_model=False,
+                 model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
+                 batch_size=20):
+        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate)
+        self.batch_size = batch_size
+
     def get_step(self, game_boards: List[AmoebaBoard], player):
-        pass
+        positions_to_search, finished_positions = self.get_positions_to_search(game_boards)
 
-    def get_probability_distribution(self, search_node, player):
-        pass
+        while len(positions_to_search) > 0:
+            paths, leaf_nodes, last_players = self.run_selection(positions_to_search.copy(), player)
+            if len(leaf_nodes) > 0:
+                policies, values = self.run_simulation(leaf_nodes, last_players)
+                self.set_policies(leaf_nodes, policies)
+                self.run_back_propagation(paths, values)
+            remaining_postions_to_search = []
+            for position_to_search in positions_to_search:
+                if position_to_search.finished_search():
+                    finished_positions[position_to_search.id] = position_to_search
+                else:
+                    remaining_postions_to_search.append(position_to_search)
+            positions_to_search = remaining_postions_to_search
 
-    def runSimulation(self, search_node, player, depth):
-        pass
+        return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)), player)
+
+    def get_positions_to_search(self, game_boards):
+        search_nodes = self.get_search_nodes_for_board_states(game_boards)
+        positions_to_search = []
+        finished_placeholders = []
+        id_counter = 0
+        for node in search_nodes:
+            positions_to_search.append(PositionToSearch(node, self.search_count, id_counter))
+            id_counter += 1
+            finished_placeholders.append(None)
+        return positions_to_search, finished_placeholders
+
+    def replace_values_in_game_ending_nodes(self, leaf_nodes, values):
+        corrected_values = []
+        for leaf_node, value in zip(leaf_nodes, values):
+            if leaf_node.has_game_ended():
+                corrected_values.append(leaf_node.reward)
+            else:
+                corrected_values.append(value)
+        return corrected_values
+
+    def set_policies(self, nodes, policies):
+        for node, policy in zip(nodes, policies):
+            node.neural_network_policy = policy
+            node.pending_policy_calculation = False
+
+    def run_selection(self, positions_to_search, player):
+        paths = []
+        leaf_nodes = []
+        last_players = []
+        positions_to_search = sorted(positions_to_search, key=lambda x: x.searches_remaining, reverse=True)
+        while len(paths) < self.batch_size and len(positions_to_search) > 0:
+            remaining_positions_to_search = []
+            for position in positions_to_search:
+                path, end_node, end_player = self.run_selection_for_node(position.search_node, player)
+                if path is not None:
+                    position.searches_remaining -= 1
+                    paths.append(path)
+                    leaf_nodes.append(end_node)
+                    last_players.append(end_player)
+                    remaining_positions_to_search.append(position)
+                    if len(paths) >= self.batch_size:
+                        break
+            positions_to_search = remaining_positions_to_search
+
+        return paths, leaf_nodes, last_players
+
+    def run_selection_for_node(self, search_node, player):
+        game_ending_node_search_count = 0
+        current_node: MCTSNode = search_node
+        current_player = player
+        path = []
+        while True:
+            if current_node.has_game_ended():
+                self.run_back_propagation([path], [current_node.reward])
+                game_ending_node_search_count += 1
+                if game_ending_node_search_count > 100:
+                    return None, None, None
+                path = []
+                current_node = search_node
+                current_player = player
+            if current_node.is_unvisited() and not current_node.pending_policy_calculation:
+                current_node.pending_policy_calculation = True
+                return path, current_node, current_player
+            elif current_node.is_unvisited():
+                return None, None, None
+
+            chosen_move, next_node = self.choose_move(current_node, current_player)
+            if chosen_move is None:
+                return None, None, None
+            path.append((current_node, chosen_move))
+            current_node.move_forward_selected(chosen_move)
+
+            current_node = next_node
+            current_player = current_player.get_other_player()
+
+    def run_simulation(self, leaf_nodes: List[MCTSNode], players):
+        board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))
+        input = self.format_input(board_states, players)
+        invalid_moves = list(map(lambda node: node.invalid_moves, leaf_nodes))
+        invalid_moves = np.array(invalid_moves)
+
+        output_2d, value = self.model.predict(input, batch_size=self.batch_size)
+        valid_moves = np.logical_not(invalid_moves)
+        output_2d = output_2d * valid_moves
+        # handle all zero outputs
+        output_sum = np.sum(output_2d, axis=(1, 2))
+        zero_outputs = output_sum == 0
+        if np.sum(zero_outputs) > 0:
+            print("{count} outputs are all zero in batch".format(count=np.sum(zero_outputs)))
+            output_2d = np.where(zero_outputs.reshape((-1, 1, 1)), valid_moves, output_2d)
+            output_sum = np.sum(output_2d, axis=(1, 2))
+
+        return output_2d / output_sum.reshape((-1, 1, 1)), value
+
+    def run_back_propagation(self, paths, values):
+        # values are received from the perspective of the leaf node and paths does not contain them
+        values = -np.array(values)
+        for path, value in zip(paths, values):
+            for node, move in reversed(path):
+                node.update_expected_value_for_move(move, value)
+                value = -value
 
     def get_name(self):
         return 'BatchMCTSAgent'
+
+    def get_search_batch(self, searches_remaining: dict):
+        # creating a batch is a best effort, we may not be able to do as many parallel searches as there are in the
+        # batch, so we only track the planned searches and get the true number after selection, hence the need for
+        # counting planned searches
+        planned_searches_remaining = copy.copy(list(searches_remaining.values()))
+        print(planned_searches_remaining)
+        # prioritize the least searched games(search_nodes)
+        search_nodes, planned_searches_remaining = (list(t) for t in zip(
+            *sorted(zip(list(searches_remaining.keys()), planned_searches_remaining), key=lambda x: x[1],
+                    reverse=True)))
+        print(planned_searches_remaining)
+        batch = []
+        while True:
+            for index in range(len(search_nodes)):
+                if planned_searches_remaining[index] > 0:
+                    batch.append(search_nodes[index])
+                    planned_searches_remaining[index] -= 1
+                if len(batch) == self.batch_size:
+                    return batch

@@ -2,6 +2,7 @@ import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import RandomAgent
 from AmoebaPlayGround.AmoebaTrainer import AmoebaTrainer
 from AmoebaPlayGround.AmoebaView import GraphicalView
+from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.Evaluator import EloEvaluator
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
 from AmoebaPlayGround.Input import get_model_filename
@@ -14,10 +15,9 @@ file_name = get_model_filename()
 
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
-sys.setrecursionlimit(5000)
 
 #gui_agent = GraphicalView(Amoeba.map_size)
-learning_agent = MCTSAgent(load_latest_model=False)
+learning_agent = BatchMCTSAgent(load_latest_model=False,batch_size=200)
 learning_agent.print_model_summary()
 random_agent = RandomAgent()
 hand_written_agent = HandWrittenAgent()
