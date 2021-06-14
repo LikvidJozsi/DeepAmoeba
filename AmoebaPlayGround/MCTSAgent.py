@@ -96,10 +96,9 @@ class MCTSAgent(NeuralAgent):
         return action_probabilities
 
     def get_search_node_of_state(self, board_state, move=None):
-        # TODO optimize
-        if board_state in self.mcts_nodes:
-            afsd = self.mcts_nodes[board_state]
-            return afsd
+        search_node = self.mcts_nodes.get(board_state)
+        if search_node is not None:
+            return search_node
         else:
             new_node = MCTSNode(board_state)
             if move is not None:

@@ -1,4 +1,5 @@
 import AmoebaPlayGround.Amoeba as Amoeba
+from AmoebaPlayGround.AmoebaAgent import RandomAgent
 from AmoebaPlayGround.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.NeuralAgent import NeuralAgent
 from AmoebaPlayGround.AmoebaView import GraphicalView
@@ -9,8 +10,7 @@ Amoeba.map_size = (15, 15)
 
 graphical_view = GraphicalView(Amoeba.map_size)
 hand_written_agent = HandWrittenAgent()
-neural_agent = MCTSAgent(search_count=100)
-game = GameGroup(batch_size=10, x_agent=neural_agent, o_agent=hand_written_agent, view=None,log_progress=True)
-game.play_all_games()
-game = GameGroup(batch_size=10, x_agent=neural_agent, o_agent=neural_agent, view=None,log_progress=True)
+random_agent = RandomAgent()
+# neural_agent = MCTSAgent(search_count=100)
+game = GameGroup(batch_size=1, x_agent=graphical_view, o_agent=random_agent, view=graphical_view,log_progress=False)
 game.play_all_games()
