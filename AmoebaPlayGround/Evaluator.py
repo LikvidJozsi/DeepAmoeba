@@ -24,7 +24,7 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, evaluation_match_count=1, move_selector=MaximalMoveSelector(),
+    def __init__(self, evaluation_match_count=20, move_selector=MaximalMoveSelector(),
                  self_play_move_selector=DistributionMoveSelector()):
         self.reference_agent = None
         self.reference_agent_rating = None

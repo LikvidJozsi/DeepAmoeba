@@ -28,4 +28,4 @@ hand_written_agent = HandWrittenAgent()
 
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True)
 
-trainer.train(batch_size=10, num_episodes=15, model_save_file=file_name, logger=FileLogger(file_name))
+trainer.train(batch_size=50, num_episodes=15, model_save_file=file_name, logger=FileLogger(file_name))
