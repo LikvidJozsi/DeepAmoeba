@@ -24,6 +24,7 @@ class GameGroup:
         finished_games = []
         number_of_games = len(self.games)
         training_samples = TrainingSampleCollection()
+        avg_turn_length_sec = 0
         turn_number = 0
         if self.log_progress:
             print("Playing {count} games between {agent_1} and {agent_2}:".
@@ -48,8 +49,12 @@ class GameGroup:
                     training_samples.extend(training_samples_from_game)
             self.games = [game for game in self.games if not game in finished_games]
             turn_number += 1
-            self.print_progress(len(finished_games) / number_of_games, turn_number,time_after_step-time_before_step)
+            turn_length_sec = time_after_step-time_before_step
+            avg_turn_length_sec = avg_turn_length_sec * (turn_number-1)/turn_number + turn_length_sec/turn_number
+            self.print_progress(len(finished_games) / number_of_games, turn_number,turn_length_sec)
 
+        if self.log_progress:
+            print("Batch finished, avg_turn_time: {:.2f}".format(avg_turn_length_sec))
         return (finished_games, training_samples, self.get_average_game_length(finished_games))
 
     def get_average_game_length(self, games):
@@ -78,7 +83,7 @@ class GameGroup:
                 progress = 1
                 status = "done\r\n"
             block = int(round(barLength * progress))
-            text = "\r[{0}] {1}%, turn number: {2} , status: {3}, turn time: {4}".format("#" * block + "-" * (barLength - block),
+            text = "\r[{0}] {1}%, turn number: {2} , turn time: {4:.2f}, status: {3}".format("#" * block + "-" * (barLength - block),
                                                                          progress * 100, turn,
                                                                          status,time)
             sys.stdout.write(text)

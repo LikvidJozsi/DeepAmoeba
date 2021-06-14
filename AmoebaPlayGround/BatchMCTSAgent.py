@@ -21,7 +21,7 @@ class PositionToSearch:
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 batch_size=20,training_epochs=10):
+                 batch_size=20, training_epochs=10):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs)
         self.batch_size = batch_size
 
@@ -34,11 +34,11 @@ class BatchMCTSAgent(MCTSAgent):
                 policies, values = self.run_simulation(leaf_nodes, last_players)
                 self.set_policies(leaf_nodes, policies)
                 self.run_back_propagation(paths, values)
-            positions_to_search = self.move_over_fully_searched_games(positions_to_search,finished_positions)
+            positions_to_search = self.move_over_fully_searched_games(positions_to_search, finished_positions)
 
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)), player)
 
-    def move_over_fully_searched_games(self,positions_to_search,finished_positions):
+    def move_over_fully_searched_games(self, positions_to_search, finished_positions):
         remaining_postions_to_search = []
         for position_to_search in positions_to_search:
             if position_to_search.finished_search():
@@ -80,9 +80,11 @@ class BatchMCTSAgent(MCTSAgent):
         while len(paths) < self.batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
-                path, end_node, end_player = self.run_selection_for_node(position.search_node, player)
+                path, end_node, end_player, searches_completed = self.run_selection_for_node(position.search_node,
+                                                                                             player,
+                                                                                             position.searches_remaining)
+                position.searches_remaining -= searches_completed
                 if path is not None:
-                    position.searches_remaining -= 1
                     paths.append(path)
                     leaf_nodes.append(end_node)
                     last_players.append(end_player)
@@ -93,29 +95,29 @@ class BatchMCTSAgent(MCTSAgent):
 
         return paths, leaf_nodes, last_players
 
-    def run_selection_for_node(self, search_node, player):
-        game_ending_node_search_count = 0
+    def run_selection_for_node(self, search_node, player, searches_remaining):
         current_node: MCTSNode = search_node
         current_player = player
+        searches_completed = 0
         path = []
         while True:
             if current_node.has_game_ended():
                 self.run_back_propagation([path], [current_node.reward])
-                game_ending_node_search_count += 1
-                if game_ending_node_search_count > 100:
-                    return None, None, None
+                searches_completed += 1
+                if searches_completed >= searches_remaining:
+                    return None, None, None, searches_completed
                 path = []
                 current_node = search_node
                 current_player = player
             if current_node.is_unvisited() and not current_node.pending_policy_calculation:
                 current_node.pending_policy_calculation = True
-                return path, current_node, current_player
+                return path, current_node, current_player, 1
             elif current_node.is_unvisited():
-                return None, None, None
+                return None, None, None, 0
 
             chosen_move, next_node = self.choose_move(current_node, current_player)
             if chosen_move is None:
-                return None, None, None
+                return None, None, None, 0
             path.append((current_node, chosen_move))
             current_node.move_forward_selected(chosen_move)
 
