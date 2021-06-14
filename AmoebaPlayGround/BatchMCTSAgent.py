@@ -21,8 +21,8 @@ class PositionToSearch:
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 batch_size=20):
-        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate)
+                 batch_size=20,training_epochs=10):
+        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs)
         self.batch_size = batch_size
 
     def get_step(self, game_boards: List[AmoebaBoard], player):
@@ -34,15 +34,18 @@ class BatchMCTSAgent(MCTSAgent):
                 policies, values = self.run_simulation(leaf_nodes, last_players)
                 self.set_policies(leaf_nodes, policies)
                 self.run_back_propagation(paths, values)
-            remaining_postions_to_search = []
-            for position_to_search in positions_to_search:
-                if position_to_search.finished_search():
-                    finished_positions[position_to_search.id] = position_to_search
-                else:
-                    remaining_postions_to_search.append(position_to_search)
-            positions_to_search = remaining_postions_to_search
+            positions_to_search = self.move_over_fully_searched_games(positions_to_search,finished_positions)
 
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)), player)
+
+    def move_over_fully_searched_games(self,positions_to_search,finished_positions):
+        remaining_postions_to_search = []
+        for position_to_search in positions_to_search:
+            if position_to_search.finished_search():
+                finished_positions[position_to_search.id] = position_to_search
+            else:
+                remaining_postions_to_search.append(position_to_search)
+        return remaining_postions_to_search
 
     def get_positions_to_search(self, game_boards):
         search_nodes = self.get_search_nodes_for_board_states(game_boards)

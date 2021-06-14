@@ -61,11 +61,13 @@ class MCTSNode:
 class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4):
+                 model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
+                 training_epochs=10):
         super().__init__(model_type, model_name, load_latest_model)
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
         self.search_count = search_count
         self.exploration_rate = exploration_rate
+        self.training_epochs = training_epochs
 
     def reset(self):
         self.mcts_nodes = dict()
@@ -128,7 +130,7 @@ class MCTSAgent(NeuralAgent):
             return -value
 
         # choose the move having the biggest upper confidence bound
-        chosen_move, next_node = self.choose_move(search_node,player)
+        chosen_move, next_node = self.choose_move(search_node, player)
         search_node.move_forward_selected(chosen_move)
         v = self.run_search(next_node, player.get_other_player(), path)
         search_node.update_expected_value_for_move(chosen_move, v)
@@ -169,8 +171,8 @@ class MCTSAgent(NeuralAgent):
         input = self.format_input(samples.board_states)
         output_policies = np.array(samples.move_probabilities)
         output_values = np.array(samples.rewards)
-        return self.model.fit(x=input, y=[output_policies, output_values], epochs=30, shuffle=True, verbose=2,
-                              batch_size=64)
+        return self.model.fit(x=input, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
+                              verbose=2, batch_size=64)
 
     def get_name(self):
         return 'MCTSAgent'
