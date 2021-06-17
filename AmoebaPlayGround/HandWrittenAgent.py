@@ -182,7 +182,7 @@ class HandWrittenAgent(AmoebaAgent):
 
     def get_importance_in_direction(self, player_symbol, row_start, column_start,
                                     row_direction, column_direction) -> Importance:
-        window_start = (row_start, column_start)
+        window_start = [row_start, column_start]
         window_length = Amoeba.win_sequence_length
         window_count = Amoeba.win_sequence_length
         max_window_importance_level = 0
@@ -197,7 +197,7 @@ class HandWrittenAgent(AmoebaAgent):
                     max_window_importance_value = window_importance.value
                 if window_importance.level == max_window_importance_level:
                     max_window_importance_value += window_importance.value
-            window_start = (window_start[0] + row_direction, window_start[1] + column_direction)
+            window_start = [window_start[0] + row_direction, window_start[1] + column_direction]
         return Importance(level=max_window_importance_level, value=max_window_importance_value)
 
     def get_window_importance_value(self, window_index, window_length):
