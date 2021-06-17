@@ -54,6 +54,7 @@ class EloEvaluator(Evaluator):
 
     def evaluate_against_previous_version(self, agent_to_evaluate, reference_agent):
         match_count = self.evaluation_match_count
+        reference_agent.reset()
         games_agent_won, draw_count, avg_game_length = self.play_matches(
             agent_to_evaluate=agent_to_evaluate,
             reference_agent=reference_agent,
