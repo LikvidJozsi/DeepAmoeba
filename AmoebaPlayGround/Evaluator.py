@@ -42,14 +42,16 @@ class EloEvaluator(Evaluator):
         logger.log("agent_rating", rating)
         return rating
 
-    def evaluate_against_fixed_references(self, agent_to_evaluate, logger):
+    def evaluate_against_fixed_references(self, agent_to_evaluate, logger=None):
         for reference_agent in fix_reference_agents:
             games_agent_won, draw_count, avg_game_length = self.play_matches(agent_to_evaluate=agent_to_evaluate,
                                                                              reference_agent=reference_agent.instance,
-                                                                             evaluation_match_count=reference_agent.evaluation_match_count)
+                                                                             evaluation_match_count=reference_agent.evaluation_match_count,
+                                                                             move_selector=self.move_selector)
             score = (games_agent_won + 0.5 * draw_count) / reference_agent.evaluation_match_count
-            logger.log(reference_agent.name + "_score", score)
-            logger.log(reference_agent.name + "_game_length", avg_game_length)
+            if logger is not None:
+                logger.log(reference_agent.name + "_score", score)
+                logger.log(reference_agent.name + "_game_length", avg_game_length)
             print('Score against %s: %f' % (reference_agent.name, score))
 
     def evaluate_against_previous_version(self, agent_to_evaluate, reference_agent):
@@ -58,7 +60,8 @@ class EloEvaluator(Evaluator):
         games_agent_won, draw_count, avg_game_length = self.play_matches(
             agent_to_evaluate=agent_to_evaluate,
             reference_agent=reference_agent,
-            evaluation_match_count=match_count)
+            evaluation_match_count=match_count,
+            move_selector=self.self_play_move_selector)
         if games_agent_won == 0:
             games_agent_won += 1
             match_count += 1
@@ -68,14 +71,14 @@ class EloEvaluator(Evaluator):
         agent_rating = self.reference_agent_rating - 400 * math.log10(1 / agent_expected_score - 1)
         return agent_rating
 
-    def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count):
+    def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count, move_selector):
         game_group_size = math.ceil(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
                                                 reference_agent, agent_to_evaluate, log_progress=True,
-                                                move_selector=self.move_selector)
+                                                move_selector=move_selector)
         game_group_agent_started = GameGroup(game_group_size,
                                              agent_to_evaluate, reference_agent, log_progress=True,
-                                             move_selector=self.move_selector)
+                                             move_selector=move_selector)
         finished_games_reference_started, _, statistics_1 = game_group_reference_starts.play_all_games()
         finished_games_agent_started, _, statistics_2 = game_group_agent_started.play_all_games()
         statistics_1.merge_statistics(statistics_2)
