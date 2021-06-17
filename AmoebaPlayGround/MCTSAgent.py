@@ -4,6 +4,7 @@ import numpy as np
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
+from AmoebaPlayGround.Logger import Statistics
 from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
 from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
@@ -77,7 +78,7 @@ class MCTSAgent(NeuralAgent):
         for i in range(self.search_count):
             for node in search_nodes:
                 self.run_search(node, player, set())
-        return self.get_move_probabilities_from_nodes(search_nodes, player)
+        return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
 
     def get_search_nodes_for_board_states(self, game_boards):
         nodes = []

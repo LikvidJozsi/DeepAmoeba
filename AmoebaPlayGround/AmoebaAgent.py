@@ -1,12 +1,13 @@
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
+from AmoebaPlayGround.Logger import Statistics
 
 
 class AmoebaAgent:
-    def get_step(self, game_boards: List, player) -> List:
+    def get_step(self, game_boards: List, player) -> (List, Dict):
         pass
 
     def train(self, training_samples: List):
@@ -29,7 +30,7 @@ class ConsoleAgent(AmoebaAgent):
             probabilities = np.zeros(game_board.get_shape(), dtype=np.float32)
             probabilities[int(answer[0]), int(answer[1])] = 1
             answers[index] = probabilities
-        return answers
+        return answers, Statistics()
 
 
 # Random agent makes random (but relatively sensible plays) it is mainly for testing purposes, but may be incorporeted into early network training too.
@@ -42,7 +43,7 @@ class RandomAgent(AmoebaAgent):
         steps = []
         for game_board in game_boards:
             steps.append(self.get_move_probabilities(game_board))
-        return steps
+        return steps, Statistics()
 
     def get_move_probabilities(self, game_board: AmoebaBoard):
         eligible_cells = np.zeros(game_board.get_shape(), dtype=np.float32)

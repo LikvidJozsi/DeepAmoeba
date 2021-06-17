@@ -2,14 +2,16 @@ import queue
 import threading
 from tkinter import *
 from typing import List
+
 import numpy as np
 
 from AmoebaPlayGround.Amoeba import Player
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL, X_SYMBOL, O_SYMBOL
-
-
 # The display function of a view is called by the AmoebaGame at init time and after every move
+from AmoebaPlayGround.Logger import Statistics
+
+
 class AmoebaView:
     def display_game_state(self, game_board: AmoebaBoard):
         pass
@@ -148,7 +150,7 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         self.move_entered_event.wait()
         action_map = np.zeros(self.board_size)
         action_map[self.clicked_cell] = 1
-        return [action_map, ]
+        return [action_map, ], Statistics()
 
     def display_game_state(self, game_board):
         self.board_update_queue.put(game_board)

@@ -7,6 +7,7 @@ import numpy as np
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
+from AmoebaPlayGround.Logger import Statistics
 
 Importance = collections.namedtuple('Importance', 'level value')
 
@@ -110,7 +111,7 @@ class HandWrittenAgent(AmoebaAgent):
         for board in game_boards:
             self.board: AmoebaBoard = board
             steps.append(self.get_step_for_game(player))
-        return steps
+        return steps, Statistics()
 
     def get_step_for_game(self, player):
         offensive_importances = self.get_importances(player.get_symbol())

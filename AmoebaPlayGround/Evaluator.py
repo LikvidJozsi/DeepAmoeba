@@ -16,7 +16,7 @@ fix_reference_agents = [ReferenceAgent(name='random_agent', instance=RandomAgent
 
 
 class Evaluator:
-    def evaluate_agent(self, agent: AmoebaAgent):
+    def evaluate_agent(self, agent: AmoebaAgent, logger):
         pass
 
     def set_reference_agent(self, agent: AmoebaAgent, rating):
@@ -32,27 +32,25 @@ class EloEvaluator(Evaluator):
         self.self_play_move_selector = self_play_move_selector
         self.evaluation_match_count = evaluation_match_count + evaluation_match_count % 2
 
-    def evaluate_agent(self, agent: AmoebaAgent):
-        scores_against_fixed, length_against_fixed = self.evaluate_against_fixed_references(agent)
+    def evaluate_agent(self, agent: AmoebaAgent, logger):
+        self.evaluate_against_fixed_references(agent, logger)
         if self.reference_agent is not None:
-            return scores_against_fixed, length_against_fixed, self.evaluate_against_previous_version(
-                agent_to_evaluate=agent,
-                reference_agent=self.reference_agent)
+            rating = self.evaluate_against_previous_version(agent_to_evaluate=agent,
+                                                            reference_agent=self.reference_agent)
         else:
-            return scores_against_fixed, length_against_fixed, 0
+            rating = 0
+        logger.log("agent_rating", rating)
+        return rating
 
-    def evaluate_against_fixed_references(self, agent_to_evaluate):
-        scores = {}
-        avg_game_lengths = {}
+    def evaluate_against_fixed_references(self, agent_to_evaluate, logger):
         for reference_agent in fix_reference_agents:
             games_agent_won, draw_count, avg_game_length = self.play_matches(agent_to_evaluate=agent_to_evaluate,
                                                                              reference_agent=reference_agent.instance,
                                                                              evaluation_match_count=reference_agent.evaluation_match_count)
             score = (games_agent_won + 0.5 * draw_count) / reference_agent.evaluation_match_count
-            scores[reference_agent.name] = score
-            avg_game_lengths[reference_agent.name] = avg_game_length
+            logger.log(reference_agent.name + "_score", score)
+            logger.log(reference_agent.name + "_game_length", avg_game_length)
             print('Score against %s: %f' % (reference_agent.name, score))
-        return scores, avg_game_lengths
 
     def evaluate_against_previous_version(self, agent_to_evaluate, reference_agent):
         match_count = self.evaluation_match_count
@@ -77,15 +75,15 @@ class EloEvaluator(Evaluator):
         game_group_agent_started = GameGroup(game_group_size,
                                              agent_to_evaluate, reference_agent, log_progress=True,
                                              move_selector=self.move_selector)
-        finished_games_reference_started, _, avg_game_length_1 = game_group_reference_starts.play_all_games()
-        finished_games_agent_started, _, avg_game_length_2 = game_group_agent_started.play_all_games()
-        aggregate_avg_game_length = (avg_game_length_1 + avg_game_length_2) / 2
+        finished_games_reference_started, _, statistics_1 = game_group_reference_starts.play_all_games()
+        finished_games_agent_started, _, statistics_2 = game_group_agent_started.play_all_games()
+        statistics_1.merge_statistics(statistics_2)
         agent_win_1, reference_win_1, draw_1 = self.get_win_statistics(finished_games_agent_started)
         reference_win_2, agent_win_2, draw_2 = self.get_win_statistics(finished_games_reference_started)
         aggregate_agent_win = agent_win_1 + agent_win_2
         aggregate_reference_win = reference_win_1 + reference_win_2
         draw_count = draw_1 + draw_2
-        return aggregate_agent_win, draw_count, aggregate_avg_game_length
+        return aggregate_agent_win, draw_count, statistics_1.get_average_game_length()
 
     def get_win_statistics(self, games):
         games_x_won = 0
