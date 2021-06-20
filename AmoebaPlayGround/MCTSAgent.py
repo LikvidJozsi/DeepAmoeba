@@ -172,7 +172,7 @@ class MCTSAgent(NeuralAgent):
         output_policies = np.array(samples.move_probabilities)
         output_values = np.array(samples.rewards)
         return self.model.fit(x=input, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
-                              verbose=2, batch_size=64)
+                              verbose=2, batch_size=32)
 
     def get_name(self):
         return 'MCTSAgent'

@@ -12,7 +12,7 @@ Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 
 #gui_agent = GraphicalView(Amoeba.map_size)
-learning_agent = BatchMCTSAgent(load_latest_model=False, batch_size=200, search_count=1000)
+learning_agent = BatchMCTSAgent(load_latest_model=False, batch_size=200, search_count=500)
 learning_agent.print_model_summary()
 random_agent = RandomAgent()
 hand_written_agent = HandWrittenAgent()
@@ -23,4 +23,4 @@ hand_written_agent = HandWrittenAgent()
 
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True, trainingset_size=50000)
 
-trainer.train(batch_size=50, num_episodes=30, model_save_file=file_name, logger=FileLogger(file_name))
+trainer.train(batch_size=100, num_episodes=30, model_save_file=file_name, logger=FileLogger(file_name))

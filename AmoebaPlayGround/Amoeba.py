@@ -21,7 +21,7 @@ class AmoebaGame:
             raise Exception('Map must be two dimensional but found shape %s' % (map_size))
         if win_sequence_length >= map_size[0]:
             raise Exception('Map size is smaller than the length of a winning sequence.')
-        self.map = AmoebaBoard(map_size)
+        self.map = AmoebaBoard(size=map_size)
         self.reset()
 
     def get_board_of_previous_player(self):

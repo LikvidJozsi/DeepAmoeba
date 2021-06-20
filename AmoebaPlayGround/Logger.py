@@ -57,7 +57,6 @@ class Logger:
     def log(self, key, message):
         pass
 
-
 class FileLogger(Logger):
     def __init__(self, log_file_name):
         if log_file_name is None or log_file_name == "":

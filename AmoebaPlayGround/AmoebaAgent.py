@@ -19,6 +19,8 @@ class AmoebaAgent:
     def get_name(self):
         return 'Default Name'
 
+    def reset(self):
+        pass
 
 class ConsoleAgent(AmoebaAgent):
     def get_step(self, game_boards: List[AmoebaBoard], player):

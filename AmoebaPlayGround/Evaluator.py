@@ -6,6 +6,7 @@ from AmoebaPlayGround.GameBoard import Player
 from AmoebaPlayGround.GameGroup import GameGroup
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
 from AmoebaPlayGround.MoveSelector import MaximalMoveSelector, DistributionMoveSelector
+from AmoebaPlayGround.Puzzles import PuzzleEvaluator
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
 fix_reference_agents = [ReferenceAgent(name='random_agent', instance=RandomAgent(),
@@ -25,12 +26,13 @@ class Evaluator:
 
 class EloEvaluator(Evaluator):
     def __init__(self, evaluation_match_count=20, move_selector=MaximalMoveSelector(),
-                 self_play_move_selector=DistributionMoveSelector()):
+                 self_play_move_selector=DistributionMoveSelector(), puzzle_variation_count=50):
         self.reference_agent = None
         self.reference_agent_rating = None
         self.move_selector = move_selector
         self.self_play_move_selector = self_play_move_selector
         self.evaluation_match_count = evaluation_match_count + evaluation_match_count % 2
+        self.puzzle_evaluator = PuzzleEvaluator(puzzle_variation_count)
 
     def evaluate_agent(self, agent: AmoebaAgent, logger):
         self.evaluate_against_fixed_references(agent, logger)
@@ -40,6 +42,7 @@ class EloEvaluator(Evaluator):
         else:
             rating = 0
         logger.log("agent_rating", rating)
+        self.puzzle_evaluator.evaluate_agent(agent, logger)
         return rating
 
     def evaluate_against_fixed_references(self, agent_to_evaluate, logger=None):

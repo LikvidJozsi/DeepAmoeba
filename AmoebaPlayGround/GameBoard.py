@@ -1,7 +1,7 @@
+import hashlib
 from enum import Enum
 
 import numpy as np
-import hashlib
 
 EMPTY_SYMBOL = 0
 X_SYMBOL = 1
@@ -42,7 +42,7 @@ class BoardIterator:
 
 
 class AmoebaBoard:
-    def __init__(self, size, cells = None):
+    def __init__(self, size=None, cells=None):
         if cells is None:
             self.cells = np.zeros(size, dtype=np.int8)
         else:
