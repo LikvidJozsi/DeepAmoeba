@@ -5,7 +5,7 @@ from typing import List
 
 import numpy as np
 
-from AmoebaPlayGround.Amoeba import Player
+from AmoebaPlayGround.Amoeba import Player, AmoebaGame
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL, X_SYMBOL, O_SYMBOL
 # The display function of a view is called by the AmoebaGame at init time and after every move
@@ -144,7 +144,8 @@ class GraphicalView(AmoebaView, AmoebaAgent):
             raise Exception("Size of gameboard (%d) does not match size of size of graphical view(%d)" % (
                 game_board.get_shape(), self.board_size))
 
-    def get_step(self, game_boards: List[AmoebaBoard], player):
+    def get_step(self, games: List[AmoebaGame], player):
+        game_boards = [game.map for game in games]
         if len(game_boards) != 1:
             raise Exception('GraphicalView does not support multiple parallel matches')
         self.move_entered_event.wait()

@@ -3,6 +3,7 @@ from typing import List
 
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMBOL
 
+game_id_counter = 0
 win_sequence_length = 5
 map_size = (8, 8)
 
@@ -15,14 +16,24 @@ class Move:
 
 
 class AmoebaGame:
-    def __init__(self, view=None):
+    def __init__(self, view=None, board_state=None):
+        global game_id_counter
         self.view = view
         if len(map_size) != 2:
-            raise Exception('Map must be two dimensional but found shape %s' % (map_size))
+            raise Exception('Map must be two dimensional but found shape %s' % (str(map_size)))
         if win_sequence_length >= map_size[0]:
             raise Exception('Map size is smaller than the length of a winning sequence.')
-        self.map = AmoebaBoard(size=map_size)
-        self.reset()
+        self.map = AmoebaBoard(size=map_size, cells=board_state)
+        self.id = game_id_counter
+        game_id_counter += 1
+        if board_state is None:
+            self.init_map()
+            self.previous_player = Player.X
+        self.history = []
+        self.winner = None
+        self.num_steps = 1
+        if self.view is not None:
+            self.view.display_game_state(self.map)
 
     def get_board_of_previous_player(self):
         return self.map.get_numeric_representation_for_player(self.previous_player)
@@ -36,15 +47,6 @@ class AmoebaGame:
 
     def place_initial_symbol(self):
         self.map.set(self.map.get_middle_of_map_index(), X_SYMBOL)
-
-    def reset(self):
-        self.init_map()
-        self.previous_player = Player.X
-        self.history = []
-        self.winner = None
-        self.num_steps = 1
-        if self.view is not None:
-            self.view.display_game_state(self.map)
 
     def step(self, action):
         current_player = self.previous_player.get_other_player()

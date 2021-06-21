@@ -5,8 +5,9 @@ import random
 import numpy as np
 
 from AmoebaPlayGround import Amoeba
+from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.GameBoard import AmoebaBoard, Player
+from AmoebaPlayGround.GameBoard import Player
 from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
 
 
@@ -59,31 +60,31 @@ class Puzzle:
         translated_board_state = np.zeros(map_size, dtype=np.uint8)
         translated_board_state[translation[0]:(translation[0] + board_state.shape[0]),
         translation[1]:(translation[1] + board_state.shape[1])] = board_state
-        return AmoebaBoard(cells=translated_board_state)
+        return AmoebaGame(board_state=translated_board_state)
 
     def equalize_pieces(self, board_state, solutions, prohibited_spaces):
-        own_figure_count = np.count_nonzero(board_state.cells == 1)
-        other_figure_count = np.count_nonzero(board_state.cells == -1)
+        own_figure_count = np.count_nonzero(board_state.map.cells == 1)
+        other_figure_count = np.count_nonzero(board_state.map.cells == -1)
         max_figure_count = max(own_figure_count, other_figure_count)
-        board_size = board_state.get_shape()
+        board_size = board_state.map.get_shape()
         for i in range(max_figure_count - own_figure_count):
             while True:
                 x = random.randrange(0, board_size[0])
                 y = random.randrange(0, board_size[1])
-                if board_state.get((x, y)) == 0 and not is_move_in_move_list(solutions,
-                                                                             [x, y]) and not is_move_in_move_list(
+                if board_state.map.get((x, y)) == 0 and not is_move_in_move_list(solutions,
+                                                                                 [x, y]) and not is_move_in_move_list(
                     prohibited_spaces, [x, y]):
-                    board_state.set((x, y), 1)
+                    board_state.map.set((x, y), 1)
                     break
 
         for i in range(max_figure_count - other_figure_count):
             while True:
                 x = random.randrange(0, board_size[0])
                 y = random.randrange(0, board_size[1])
-                if board_state.get((x, y)) == 0 and not is_move_in_move_list(solutions,
-                                                                             [x, y]) and not is_move_in_move_list(
+                if board_state.map.get((x, y)) == 0 and not is_move_in_move_list(solutions,
+                                                                                 [x, y]) and not is_move_in_move_list(
                     prohibited_spaces, [x, y]):
-                    board_state.set((x, y), -1)
+                    board_state.map.set((x, y), -1)
                     break
 
     def translate_indexes(self, indexes, translation):
@@ -129,12 +130,10 @@ class PuzzleEvaluator:
         aggregate_policy_correctness, aggregate_policy_entropy = 0, 0
         default_search_count = agent.search_count
         for index, puzzle in enumerate(puzzles):
-            agent.reset()
             agent.search_count = 2
             policy_correctness, policy_entropy = self.evaluate_puzzle(agent, puzzle)
             aggregate_policy_correctness += policy_correctness
             aggregate_policy_entropy += policy_entropy
-            agent.reset()
             agent.search_count = default_search_count
             search_correctness, search_entropy = self.evaluate_puzzle(agent, puzzle)
             aggreage_search_correctness += search_correctness

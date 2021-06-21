@@ -44,7 +44,6 @@ class AmoebaTrainer:
                     teaching_agent.get_name(), group_statistics.get_average_game_length()))
                 self.training_samples.extend(training_samples_from_agent)
                 statistics.merge_statistics(group_statistics)
-            self.learning_agent.reset()
             if self.self_play:
                 self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)
             statistics.log(logger)

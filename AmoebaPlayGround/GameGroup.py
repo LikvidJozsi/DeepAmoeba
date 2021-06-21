@@ -34,9 +34,8 @@ class GameGroup:
         while len(self.games) != 0:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
-            maps = self.get_maps_of_games()
             time_before_step = time.time()
-            action_probabilities, step_statistics = next_agent.get_step(maps, self.games[0].get_next_player())
+            action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player())
             statistics.merge_statistics(step_statistics)
             time_after_step = time.time()
             for game, training_sample_generator, action_probabilities in zip(self.games,
@@ -60,7 +59,7 @@ class GameGroup:
                                 step_statistics)
 
         if self.log_progress:
-            print("Batch finished, avg_turn_time: {:.2f}".format(avg_turn_length_sec))
+            print("Batch finished, avg_turn_time: {:.3f}".format(avg_turn_length_sec))
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)
         statistics.game_count = len(finished_games)
         return finished_games, training_samples, statistics
@@ -70,12 +69,6 @@ class GameGroup:
         for game in games:
             sum_game_length += game.num_steps
         return sum_game_length
-
-    def get_maps_of_games(self):
-        maps = []
-        for game in self.games:
-            maps.append(game.map)
-        return maps
 
     def get_next_agent(self, game):
         if game.previous_player == Player.X:

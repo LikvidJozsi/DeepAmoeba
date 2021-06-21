@@ -3,15 +3,16 @@ from typing import List
 
 import numpy as np
 
-from AmoebaPlayGround.GameBoard import AmoebaBoard
+from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Logger import Statistics
 from AmoebaPlayGround.MCTSAgent import MCTSAgent, MCTSNode
 from AmoebaPlayGround.NetworkModels import NetworkModel, PolicyValueNetwork
 
 
 class PositionToSearch:
-    def __init__(self, search_node: MCTSNode, searches_remaining: int, id: int):
+    def __init__(self, search_node: MCTSNode, search_tree: dict, searches_remaining: int, id: int):
         self.search_node = search_node
+        self.search_tree = search_tree
         self.searches_remaining = searches_remaining
         self.id = id
 
@@ -26,13 +27,16 @@ class BatchMCTSAgent(MCTSAgent):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs)
         self.batch_size = batch_size
         self.statistics = Statistics()
+        self.search_trees = dict()
 
     def reset_statistics(self):
         self.statistics = Statistics()
 
-    def get_step(self, game_boards: List[AmoebaBoard], player):
+    def get_step(self, games: List[AmoebaGame], player):
+        game_boards = [game.map for game in games]
+        search_trees = self.get_search_trees_for_games(games)
         self.reset_statistics()
-        positions_to_search, finished_positions = self.get_positions_to_search(game_boards)
+        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, game_boards)
 
         while len(positions_to_search) > 0:
             paths, leaf_nodes, last_players = self.run_selection(positions_to_search.copy(), player)
@@ -45,6 +49,21 @@ class BatchMCTSAgent(MCTSAgent):
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)),
                                                       player), self.statistics
 
+    def get_search_trees_for_games(self, games):
+        updated_tree_dictionary = dict()
+        trees = []
+        for game in games:
+            stored_tree = self.search_trees.get(game.id)
+            if stored_tree is not None:
+                updated_tree_dictionary[game.id] = stored_tree
+                trees.append(stored_tree)
+            else:
+                new_tree = dict()
+                updated_tree_dictionary[game.id] = new_tree
+                trees.append(new_tree)
+        self.search_trees = updated_tree_dictionary
+        return trees
+
     def move_over_fully_searched_games(self, positions_to_search, finished_positions):
         remaining_postions_to_search = []
         for position_to_search in positions_to_search:
@@ -54,13 +73,13 @@ class BatchMCTSAgent(MCTSAgent):
                 remaining_postions_to_search.append(position_to_search)
         return remaining_postions_to_search
 
-    def get_positions_to_search(self, game_boards):
-        search_nodes = self.get_search_nodes_for_board_states(game_boards)
+    def get_positions_to_search(self, search_trees, game_boards):
+        search_nodes = self.get_search_nodes_for_board_states(search_trees, game_boards)
         positions_to_search = []
         finished_placeholders = []
         id_counter = 0
-        for node in search_nodes:
-            positions_to_search.append(PositionToSearch(node, self.search_count, id_counter))
+        for node, search_tree in zip(search_nodes, search_trees):
+            positions_to_search.append(PositionToSearch(node, search_tree, self.search_count, id_counter))
             id_counter += 1
             finished_placeholders.append(None)
         return positions_to_search, finished_placeholders
@@ -87,10 +106,7 @@ class BatchMCTSAgent(MCTSAgent):
         while len(paths) < self.batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
-                path, end_node, end_player, searches_completed = self.run_selection_for_node(position.search_node,
-                                                                                             player,
-                                                                                             position.searches_remaining)
-                position.searches_remaining -= searches_completed
+                path, end_node, end_player = self.run_selection_for_node(position, player)
                 if path is not None:
                     paths.append(path)
                     leaf_nodes.append(end_node)
@@ -102,29 +118,31 @@ class BatchMCTSAgent(MCTSAgent):
 
         return paths, leaf_nodes, last_players
 
-    def run_selection_for_node(self, search_node, player, searches_remaining):
-        current_node: MCTSNode = search_node
+    def run_selection_for_node(self, position: PositionToSearch, player):
+        current_node: MCTSNode = position.search_node
         current_player = player
         searches_completed = 0
         path = []
         while True:
             if current_node.has_game_ended():
                 self.run_back_propagation([path], [current_node.reward])
-                searches_completed += 1
-                if searches_completed >= searches_remaining:
-                    return None, None, None, searches_completed
+                position.searches_remaining -= 1
+                if 0 >= position.searches_remaining:
+                    return None, None, None
                 path = []
-                current_node = search_node
+                current_node = position.search_node
                 current_player = player
             if current_node.is_unvisited() and not current_node.pending_policy_calculation:
                 current_node.pending_policy_calculation = True
-                return path, current_node, current_player, 1
+                position.searches_remaining -= 1
+                return path, current_node, current_player
             elif current_node.is_unvisited():
-                return None, None, None, 0
+                # TODO make this redundant
+                return None, None, None
 
-            chosen_move, next_node = self.choose_move(current_node, current_player)
+            chosen_move, next_node = self.choose_move(current_node, position.search_tree, current_player)
             if chosen_move is None:
-                return None, None, None, 0
+                return None, None, None
             path.append((current_node, chosen_move))
             current_node.move_forward_selected(chosen_move)
 

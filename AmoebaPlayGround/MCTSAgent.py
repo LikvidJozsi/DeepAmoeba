@@ -73,18 +73,19 @@ class MCTSAgent(NeuralAgent):
     def reset(self):
         self.mcts_nodes = dict()
 
-    def get_step(self, game_boards: List[AmoebaBoard], player):
+    def get_step(self, games: List[AmoebaGame], player):
+        game_boards = [game.map for game in games]
         search_nodes = self.get_search_nodes_for_board_states(game_boards)
         for i in range(self.search_count):
             for node in search_nodes:
                 self.run_search(node, player, set())
         return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
 
-    def get_search_nodes_for_board_states(self, game_boards):
+    def get_search_nodes_for_board_states(self, search_trees, game_boards):
         nodes = []
-        for game_board in game_boards:
+        for game_board, search_tree in zip(game_boards, search_trees):
             board_copy = game_board.copy()
-            search_node = self.get_search_node_of_state(board_copy)
+            search_node = self.get_search_node_of_state(search_tree, board_copy)
             nodes.append(search_node)
         return nodes
 
@@ -96,15 +97,15 @@ class MCTSAgent(NeuralAgent):
             action_probabilities.append(probabilities)
         return action_probabilities
 
-    def get_search_node_of_state(self, board_state, move=None):
-        search_node = self.mcts_nodes.get(board_state)
+    def get_search_node_of_state(self, search_tree, board_state, move=None):
+        search_node = search_tree.get(board_state)
         if search_node is not None:
             return search_node
         else:
             new_node = MCTSNode(board_state)
             if move is not None:
                 new_node.set_game_ended(move)
-            self.mcts_nodes[board_state] = new_node
+            search_tree[board_state] = new_node
             return new_node
 
     def get_probability_distribution(self, search_node, player):
@@ -136,7 +137,7 @@ class MCTSAgent(NeuralAgent):
         search_node.update_expected_value_for_move(chosen_move, v)
         return -v
 
-    def choose_move(self, search_node, player):
+    def choose_move(self, search_node, search_tree, player):
         upper_confidence_bounds = search_node.expected_move_rewards + self.exploration_rate * \
                                   search_node.neural_network_policy * np.sqrt(search_node.visited_count + 1e-8) / \
                                   (1 + search_node.forward_visited_counts)
@@ -149,7 +150,7 @@ class MCTSAgent(NeuralAgent):
                 break
             move_2d = tuple(np.unravel_index(move, search_node.board_state.get_shape()))
             new_board_state = search_node.get_board_state_after_move(move_2d, player)
-            node_to_be_searced = self.get_search_node_of_state(new_board_state, move_2d)
+            node_to_be_searced = self.get_search_node_of_state(search_tree, new_board_state, move_2d)
             if not node_to_be_searced.pending_policy_calculation:
                 return move_2d, node_to_be_searced
         return None, None

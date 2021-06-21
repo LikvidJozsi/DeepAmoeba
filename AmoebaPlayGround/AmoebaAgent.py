@@ -1,13 +1,14 @@
-from typing import List, Dict
+from typing import List
 
 import numpy as np
 
+from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
 from AmoebaPlayGround.Logger import Statistics
 
 
 class AmoebaAgent:
-    def get_step(self, game_boards: List, player) -> (List, Dict):
+    def get_step(self, games: List[AmoebaGame], player):
         pass
 
     def train(self, training_samples: List):
@@ -22,8 +23,10 @@ class AmoebaAgent:
     def reset(self):
         pass
 
+
 class ConsoleAgent(AmoebaAgent):
-    def get_step(self, game_boards: List[AmoebaBoard], player):
+    def get_step(self, games: List[AmoebaGame], player):
+        game_boards = [game.map for game in games]
         answers = np.zeros((len(game_boards), 2), dtype=np.uint8)
         print('You are ' + str(player))
         print('Give position in row column format (zero indexing):')
@@ -41,7 +44,8 @@ class RandomAgent(AmoebaAgent):
     def __init__(self, move_max_distance=2):
         self.max_move_distance = move_max_distance
 
-    def get_step(self, game_boards: List, player) -> List:
+    def get_step(self, games: List[AmoebaGame], player):
+        game_boards = [game.map for game in games]
         steps = []
         for game_board in game_boards:
             steps.append(self.get_move_probabilities(game_board))

@@ -9,7 +9,6 @@ from tensorflow.keras.models import Model
 
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.GameBoard import AmoebaBoard
 from AmoebaPlayGround.NetworkModels import NetworkModel
 
 models_folder = 'Models/'
@@ -61,7 +60,7 @@ class NeuralAgent(AmoebaAgent, ABC):
         return 'NeuralAgent'
 
     @abstractmethod
-    def get_step(self, game_boards: List[AmoebaBoard], player):
+    def get_step(self, games: List[Amoeba.AmoebaGame], player):
         pass
 
     @abstractmethod
