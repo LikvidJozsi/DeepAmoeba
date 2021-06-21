@@ -77,17 +77,18 @@ class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 training_epochs=10):
+                 training_epochs=10, dirichlet_ratio=0.25):
         super().__init__(model_type, model_name, load_latest_model)
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
         self.search_count = search_count
         self.exploration_rate = exploration_rate
         self.training_epochs = training_epochs
+        self.dirichlet_ratio = dirichlet_ratio
 
     def reset(self):
         self.mcts_nodes = dict()
 
-    def get_step(self, games: List[AmoebaGame], player):
+    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
         search_nodes = self.get_root_nodes(None, game_boards)
         for i in range(self.search_count):
@@ -95,14 +96,19 @@ class MCTSAgent(NeuralAgent):
                 self.run_search(node, player, set())
         return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
 
-    def get_root_nodes(self, search_trees, game_boards):
+    def get_root_nodes(self, search_trees, game_boards, evaluation):
         nodes = []
+        if evaluation:
+            eps = 0
+        else:
+            eps = self.dirichlet_ratio
+
         for game_board, search_tree in zip(game_boards, search_trees):
             board_copy = game_board.copy()
             search_node = search_tree.get(board_copy)
             root_node = MCTSRootNode(board_copy)
             if search_node is not None:
-                root_node = MCTSRootNode(board_copy)
+                root_node = MCTSRootNode(board_copy, eps=eps)
                 root_node.set_policy(search_node.neural_network_policy)
             nodes.append(root_node)
 

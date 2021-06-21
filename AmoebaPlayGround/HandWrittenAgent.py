@@ -106,7 +106,7 @@ class HandWrittenAgent(AmoebaAgent):
     def __init__(self, move_selector: MoveSelectionMethod = AnyFromHighestValueSelection()):
         self.move_selector = move_selector
 
-    def get_step(self, games: List[Amoeba.AmoebaGame], player):
+    def get_step(self, games: List[Amoeba.AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
         steps = []
         for board in game_boards:

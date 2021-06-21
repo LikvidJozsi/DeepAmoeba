@@ -10,13 +10,14 @@ from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGene
 class GameGroup:
     def __init__(self, batch_size, x_agent, o_agent,
                  view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator, log_progress=False,
-                 move_selector=MaximalMoveSelector()):
+                 move_selector=MaximalMoveSelector(), evaluation=False):
         self.x_agent = x_agent
         self.o_agent = o_agent
         self.log_progress = log_progress
         self.games = []
         self.move_selector = move_selector
         self.training_sample_generators = []
+        self.evaluation = evaluation
         for index in range(batch_size):
             self.games.append(AmoebaGame(view))
             self.training_sample_generators.append(training_sample_generator_class())
@@ -35,7 +36,8 @@ class GameGroup:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
             time_before_step = time.time()
-            action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player())
+            action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player(),
+                                                                        self.evaluation)
             statistics.merge_statistics(step_statistics)
             time_after_step = time.time()
             for game, training_sample_generator, action_probabilities in zip(self.games,

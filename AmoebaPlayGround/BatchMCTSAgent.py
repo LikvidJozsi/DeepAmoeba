@@ -23,8 +23,9 @@ class PositionToSearch:
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 batch_size=20, training_epochs=10):
-        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs)
+                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25):
+        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
+                         dirichlet_ratio)
         self.batch_size = batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
@@ -32,11 +33,11 @@ class BatchMCTSAgent(MCTSAgent):
     def reset_statistics(self):
         self.statistics = Statistics()
 
-    def get_step(self, games: List[AmoebaGame], player):
+    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
         search_trees = self.get_search_trees_for_games(games)
         self.reset_statistics()
-        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, game_boards)
+        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, game_boards, evaluation)
 
         while len(positions_to_search) > 0:
             paths, leaf_nodes, last_players = self.run_selection(positions_to_search.copy(), player)
@@ -73,8 +74,8 @@ class BatchMCTSAgent(MCTSAgent):
                 remaining_postions_to_search.append(position_to_search)
         return remaining_postions_to_search
 
-    def get_positions_to_search(self, search_trees, game_boards):
-        search_nodes = self.get_root_nodes(search_trees, game_boards)
+    def get_positions_to_search(self, search_trees, game_boards, evaluation):
+        search_nodes = self.get_root_nodes(search_trees, game_boards, evaluation)
         positions_to_search = []
         finished_placeholders = []
         id_counter = 0

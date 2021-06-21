@@ -78,10 +78,10 @@ class EloEvaluator(Evaluator):
         game_group_size = math.ceil(evaluation_match_count / 2)
         game_group_reference_starts = GameGroup(game_group_size,
                                                 reference_agent, agent_to_evaluate, log_progress=True,
-                                                move_selector=move_selector)
+                                                move_selector=move_selector, evaluation=True)
         game_group_agent_started = GameGroup(game_group_size,
                                              agent_to_evaluate, reference_agent, log_progress=True,
-                                             move_selector=move_selector)
+                                             move_selector=move_selector, evaluation=True)
         finished_games_reference_started, _, statistics_1 = game_group_reference_starts.play_all_games()
         finished_games_agent_started, _, statistics_2 = game_group_agent_started.play_all_games()
         statistics_1.merge_statistics(statistics_2)

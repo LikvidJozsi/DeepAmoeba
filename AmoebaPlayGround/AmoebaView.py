@@ -144,7 +144,7 @@ class GraphicalView(AmoebaView, AmoebaAgent):
             raise Exception("Size of gameboard (%d) does not match size of size of graphical view(%d)" % (
                 game_board.get_shape(), self.board_size))
 
-    def get_step(self, games: List[AmoebaGame], player):
+    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
         if len(game_boards) != 1:
             raise Exception('GraphicalView does not support multiple parallel matches')

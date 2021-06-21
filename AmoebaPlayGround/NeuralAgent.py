@@ -60,7 +60,7 @@ class NeuralAgent(AmoebaAgent, ABC):
         return 'NeuralAgent'
 
     @abstractmethod
-    def get_step(self, games: List[Amoeba.AmoebaGame], player):
+    def get_step(self, games: List[Amoeba.AmoebaGame], player, evaluation=False):
         pass
 
     @abstractmethod

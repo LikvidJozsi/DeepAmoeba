@@ -148,7 +148,7 @@ class PuzzleEvaluator:
         return average_policy_correctness, average_policy_entropy, average_search_correctness, average_search_entropy
 
     def evaluate_puzzle(self, agent: AmoebaAgent, puzzle):
-        probabilities, _ = agent.get_step(puzzle.board_state_variations, Player.X)
+        probabilities, _ = agent.get_step(puzzle.board_state_variations, Player.X, True)
 
         correct_moves = 0
         for probability_map, solution_variations in zip(probabilities, puzzle.solution_variations):
