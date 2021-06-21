@@ -74,7 +74,7 @@ class BatchMCTSAgent(MCTSAgent):
         return remaining_postions_to_search
 
     def get_positions_to_search(self, search_trees, game_boards):
-        search_nodes = self.get_search_nodes_for_board_states(search_trees, game_boards)
+        search_nodes = self.get_root_nodes(search_trees, game_boards)
         positions_to_search = []
         finished_placeholders = []
         id_counter = 0
@@ -95,7 +95,7 @@ class BatchMCTSAgent(MCTSAgent):
 
     def set_policies(self, nodes, policies):
         for node, policy in zip(nodes, policies):
-            node.neural_network_policy = policy
+            node.set_policy(policy)
             node.pending_policy_calculation = False
 
     def run_selection(self, positions_to_search, player):
@@ -121,7 +121,6 @@ class BatchMCTSAgent(MCTSAgent):
     def run_selection_for_node(self, position: PositionToSearch, player):
         current_node: MCTSNode = position.search_node
         current_player = player
-        searches_completed = 0
         path = []
         while True:
             if current_node.has_game_ended():
@@ -137,7 +136,6 @@ class BatchMCTSAgent(MCTSAgent):
                 position.searches_remaining -= 1
                 return path, current_node, current_player
             elif current_node.is_unvisited():
-                # TODO make this redundant
                 return None, None, None
 
             chosen_move, next_node = self.choose_move(current_node, position.search_tree, current_player)

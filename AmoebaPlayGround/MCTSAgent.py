@@ -36,6 +36,9 @@ class MCTSNode:
             self.game_has_ended = True
             self.reward = 0
 
+    def set_policy(self, policy):
+        self.neural_network_policy = policy
+
     def is_unvisited(self):
         return self.neural_network_policy is None
 
@@ -59,6 +62,17 @@ class MCTSNode:
         self.backward_visited_counts[move] += 1
 
 
+class MCTSRootNode(MCTSNode):
+    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, eps=0.25):
+        super().__init__(board_state, has_game_ended)
+        self.eps = eps
+
+    def set_policy(self, policy):
+        board_shape = self.board_state.get_shape()
+        self.neural_network_policy = policy * (1 - self.eps) + self.eps * np.random.dirichlet(
+            [0.03] * np.prod(board_shape)).reshape(board_shape)
+
+
 class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
@@ -75,18 +89,23 @@ class MCTSAgent(NeuralAgent):
 
     def get_step(self, games: List[AmoebaGame], player):
         game_boards = [game.map for game in games]
-        search_nodes = self.get_search_nodes_for_board_states(game_boards)
+        search_nodes = self.get_root_nodes(None, game_boards)
         for i in range(self.search_count):
             for node in search_nodes:
                 self.run_search(node, player, set())
         return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
 
-    def get_search_nodes_for_board_states(self, search_trees, game_boards):
+    def get_root_nodes(self, search_trees, game_boards):
         nodes = []
         for game_board, search_tree in zip(game_boards, search_trees):
             board_copy = game_board.copy()
-            search_node = self.get_search_node_of_state(search_tree, board_copy)
-            nodes.append(search_node)
+            search_node = search_tree.get(board_copy)
+            root_node = MCTSRootNode(board_copy)
+            if search_node is not None:
+                root_node = MCTSRootNode(board_copy)
+                root_node.set_policy(search_node.neural_network_policy)
+            nodes.append(root_node)
+
         return nodes
 
     def get_move_probabilities_from_nodes(self, nodes, player):
@@ -127,7 +146,7 @@ class MCTSAgent(NeuralAgent):
 
         if search_node.is_unvisited():
             policy, value = self.get_probability_distribution(search_node, player)
-            search_node.neural_network_policy = policy
+            search_node.set_policy(policy)
             return -value
 
         # choose the move having the biggest upper confidence bound
