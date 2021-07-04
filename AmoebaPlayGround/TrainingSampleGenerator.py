@@ -33,15 +33,15 @@ class TrainingSampleCollection:
         self.rewards.extend(training_sample_collection.rewards)
 
 
-class TrainingSampleGenerator():
+class PlaceholderTrainingSampleGenerator:
     def get_training_data(self, winner):
-        pass
+        return TrainingSampleCollection()
 
     def add_move(self, board_state, probabilities, player):
         pass
 
 
-class SymmetricTrainingSampleGenerator(TrainingSampleGenerator):
+class SymmetricTrainingSampleGenerator(PlaceholderTrainingSampleGenerator):
     def __init__(self):
         self.board_states = []
         self.move_probabilities = []

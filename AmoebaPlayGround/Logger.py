@@ -13,6 +13,9 @@ class Statistics:
         self.searches_done = 0
         self.aggregate_game_length = 0
         self.game_count = 0
+        self.games_won_by_player_1 = 0
+        self.games_won_by_player_2 = 0
+        self.draw_games = 0
 
     def get_average_game_length(self):
         if self.game_count > 0:
@@ -33,6 +36,14 @@ class Statistics:
         self.searches_done += other_statistics.searches_done
         self.aggregate_game_length += other_statistics.aggregate_game_length
         self.game_count += other_statistics.game_count
+        self.games_won_by_player_1 += other_statistics.games_won_by_player_1
+        self.games_won_by_player_2 += other_statistics.games_won_by_player_2
+        self.draw_games += other_statistics.draw_games
+
+    def add_win_statistics(self, games_won_by_player_1, games_won_by_player_2, draw_games):
+        self.games_won_by_player_1 = games_won_by_player_1
+        self.games_won_by_player_2 = games_won_by_player_2
+        self.draw_games = draw_games
 
     def add_searches(self, paths):
         new_searches = len(paths)
@@ -56,6 +67,7 @@ class Logger:
 
     def log(self, key, message):
         pass
+
 
 class FileLogger(Logger):
     def __init__(self, log_file_name):

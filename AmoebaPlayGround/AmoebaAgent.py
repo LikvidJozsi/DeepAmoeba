@@ -23,6 +23,12 @@ class AmoebaAgent:
     def reset(self):
         pass
 
+class PlaceholderAgent(AmoebaAgent):
+    def __init__(self, name):
+        self.name = name
+
+    def get_name(self):
+        return self.name
 
 class ConsoleAgent(AmoebaAgent):
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):

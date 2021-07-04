@@ -8,9 +8,10 @@ from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGene
 
 
 class GameGroup:
-    def __init__(self, batch_size, x_agent, o_agent,
+    def __init__(self, batch_size, x_agent=None, o_agent=None,
                  view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator, log_progress=False,
-                 move_selector=MaximalMoveSelector(), evaluation=False):
+                 move_selector=MaximalMoveSelector(), evaluation=False, reversed_agent_order=False):
+        self.reversed_agent_order = reversed_agent_order
         self.x_agent = x_agent
         self.o_agent = o_agent
         self.log_progress = log_progress
@@ -21,6 +22,12 @@ class GameGroup:
         for index in range(batch_size):
             self.games.append(AmoebaGame(view))
             self.training_sample_generators.append(training_sample_generator_class())
+
+    def set_x_agent(self, x_agent):
+        self.x_agent = x_agent
+
+    def set_o_agent(self, o_agent):
+        self.o_agent = o_agent
 
     def play_all_games(self):
         finished_games = []
@@ -64,7 +71,26 @@ class GameGroup:
             print("Batch finished, avg_turn_time: {:.3f}".format(avg_turn_length_sec))
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)
         statistics.game_count = len(finished_games)
+        games_player_1_won, games_player_2_won, draws = self.get_win_statistics(finished_games)
+        statistics.add_win_statistics(games_player_1_won, games_player_2_won, draws)
         return finished_games, training_samples, statistics
+
+    def get_win_statistics(self, games):
+        games_player_1_won = 0
+        games_player_2_won = 0
+        games_draw = 0
+        for game in games:
+            winner = game.winner
+            if winner == Player.X:
+                games_player_1_won += 1
+            elif winner == Player.O:
+                games_player_2_won += 1
+            else:
+                games_draw += 1
+        if self.reversed_agent_order:
+            return games_player_2_won, games_player_1_won, games_draw
+        else:
+            return games_player_1_won, games_player_2_won, games_draw
 
     def get_aggregate_game_length(self, games):
         sum_game_length = 0

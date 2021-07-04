@@ -2,10 +2,7 @@ import collections
 import math
 
 from AmoebaPlayGround.AmoebaAgent import AmoebaAgent, RandomAgent
-from AmoebaPlayGround.GameBoard import Player
-from AmoebaPlayGround.GameGroup import GameGroup
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
-from AmoebaPlayGround.MoveSelector import MaximalMoveSelector, DistributionMoveSelector
 from AmoebaPlayGround.Puzzles import PuzzleEvaluator
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
@@ -25,12 +22,10 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, evaluation_match_count=20, move_selector=MaximalMoveSelector(),
-                 self_play_move_selector=DistributionMoveSelector(), puzzle_variation_count=50):
+    def __init__(self, game_executor, evaluation_match_count=20, puzzle_variation_count=50):
+        self.game_executor = game_executor
         self.reference_agent = None
         self.reference_agent_rating = None
-        self.move_selector = move_selector
-        self.self_play_move_selector = self_play_move_selector
         self.evaluation_match_count = evaluation_match_count + evaluation_match_count % 2
         self.puzzle_evaluator = PuzzleEvaluator(puzzle_variation_count)
 
@@ -49,8 +44,7 @@ class EloEvaluator(Evaluator):
         for reference_agent in fix_reference_agents:
             games_agent_won, draw_count, avg_game_length = self.play_matches(agent_to_evaluate=agent_to_evaluate,
                                                                              reference_agent=reference_agent.instance,
-                                                                             evaluation_match_count=reference_agent.evaluation_match_count,
-                                                                             move_selector=self.move_selector)
+                                                                             evaluation_match_count=reference_agent.evaluation_match_count)
             score = (games_agent_won + 0.5 * draw_count) / reference_agent.evaluation_match_count
             if logger is not None:
                 logger.log(reference_agent.name + "_score", score)
@@ -59,12 +53,9 @@ class EloEvaluator(Evaluator):
 
     def evaluate_against_previous_version(self, agent_to_evaluate, reference_agent):
         match_count = self.evaluation_match_count
-        reference_agent.reset()
-        games_agent_won, draw_count, avg_game_length = self.play_matches(
-            agent_to_evaluate=agent_to_evaluate,
-            reference_agent=reference_agent,
-            evaluation_match_count=match_count,
-            move_selector=self.self_play_move_selector)
+        games_agent_won, draw_count, avg_game_length = self.play_matches(agent_to_evaluate=agent_to_evaluate,
+                                                                         reference_agent=reference_agent,
+                                                                         evaluation_match_count=match_count)
         if games_agent_won == 0:
             games_agent_won += 1
             match_count += 1
@@ -74,37 +65,10 @@ class EloEvaluator(Evaluator):
         agent_rating = self.reference_agent_rating - 400 * math.log10(1 / agent_expected_score - 1)
         return agent_rating
 
-    def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count, move_selector):
-        game_group_size = math.ceil(evaluation_match_count / 2)
-        game_group_reference_starts = GameGroup(game_group_size,
-                                                reference_agent, agent_to_evaluate, log_progress=True,
-                                                move_selector=move_selector, evaluation=True)
-        game_group_agent_started = GameGroup(game_group_size,
-                                             agent_to_evaluate, reference_agent, log_progress=True,
-                                             move_selector=move_selector, evaluation=True)
-        finished_games_reference_started, _, statistics_1 = game_group_reference_starts.play_all_games()
-        finished_games_agent_started, _, statistics_2 = game_group_agent_started.play_all_games()
-        statistics_1.merge_statistics(statistics_2)
-        agent_win_1, reference_win_1, draw_1 = self.get_win_statistics(finished_games_agent_started)
-        reference_win_2, agent_win_2, draw_2 = self.get_win_statistics(finished_games_reference_started)
-        aggregate_agent_win = agent_win_1 + agent_win_2
-        aggregate_reference_win = reference_win_1 + reference_win_2
-        draw_count = draw_1 + draw_2
-        return aggregate_agent_win, draw_count, statistics_1.get_average_game_length()
-
-    def get_win_statistics(self, games):
-        games_x_won = 0
-        games_o_won = 0
-        games_draw = 0
-        for game in games:
-            winner = game.winner
-            if winner == Player.X:
-                games_x_won += 1
-            elif winner == Player.O:
-                games_o_won += 1
-            else:
-                games_draw += 1
-        return games_x_won, games_o_won, games_draw
+    def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count):
+        games, _, statistics = self.game_executor.play_games_between_agents(
+            evaluation_match_count, agent_to_evaluate, reference_agent, evaluation=True)
+        return statistics.games_won_by_player_1, statistics.draw_games, statistics.get_average_game_length()
 
     def set_reference_agent(self, agent: AmoebaAgent, rating=1000):
         self.reference_agent = agent

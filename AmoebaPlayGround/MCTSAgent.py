@@ -77,16 +77,20 @@ class MCTSAgent(NeuralAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 training_epochs=10, dirichlet_ratio=0.25):
-        super().__init__(model_type, model_name, load_latest_model)
+                 training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8)):
+        super().__init__(model_type, model_name, load_latest_model, map_size)
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
         self.search_count = search_count
         self.exploration_rate = exploration_rate
         self.training_epochs = training_epochs
         self.dirichlet_ratio = dirichlet_ratio
 
-    def reset(self):
-        self.mcts_nodes = dict()
+    def get_copy(self):
+        new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
+                                      exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
+                                      dirichlet_ratio=self.dirichlet_ratio)
+        new_instance.set_weights(self.get_weights())
+        return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]

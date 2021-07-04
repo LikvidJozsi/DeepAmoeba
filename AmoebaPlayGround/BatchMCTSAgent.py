@@ -23,15 +23,23 @@ class PositionToSearch:
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25):
+                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8)):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
-                         dirichlet_ratio)
+                         dirichlet_ratio, map_size)
         self.batch_size = batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
 
     def reset_statistics(self):
         self.statistics = Statistics()
+
+    def get_copy(self):
+        new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
+                                      exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
+                                      dirichlet_ratio=self.dirichlet_ratio,
+                                      batch_size=self.batch_size, map_size=self.map_size)
+        new_instance.set_weights(self.get_weights())
+        return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
