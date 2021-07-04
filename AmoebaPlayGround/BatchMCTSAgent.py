@@ -6,6 +6,7 @@ import numpy as np
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Logger import Statistics
 from AmoebaPlayGround.MCTSAgent import MCTSAgent, MCTSNode
+from AmoebaPlayGround.MCTSTree import MCTSTree
 from AmoebaPlayGround.NetworkModels import NetworkModel, PolicyValueNetwork
 
 
@@ -42,10 +43,9 @@ class BatchMCTSAgent(MCTSAgent):
         return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
-        game_boards = [game.map for game in games]
         search_trees = self.get_search_trees_for_games(games)
         self.reset_statistics()
-        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, game_boards, evaluation)
+        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, games, evaluation)
 
         while len(positions_to_search) > 0:
             paths, leaf_nodes, last_players = self.run_selection(positions_to_search.copy(), player)
@@ -65,9 +65,10 @@ class BatchMCTSAgent(MCTSAgent):
             stored_tree = self.search_trees.get(game.id)
             if stored_tree is not None:
                 updated_tree_dictionary[game.id] = stored_tree
+                stored_tree.set_turn(game.num_steps)
                 trees.append(stored_tree)
             else:
-                new_tree = dict()
+                new_tree = MCTSTree(game.num_steps)
                 updated_tree_dictionary[game.id] = new_tree
                 trees.append(new_tree)
         self.search_trees = updated_tree_dictionary
@@ -82,8 +83,8 @@ class BatchMCTSAgent(MCTSAgent):
                 remaining_postions_to_search.append(position_to_search)
         return remaining_postions_to_search
 
-    def get_positions_to_search(self, search_trees, game_boards, evaluation):
-        search_nodes = self.get_root_nodes(search_trees, game_boards, evaluation)
+    def get_positions_to_search(self, search_trees, games, evaluation):
+        search_nodes = self.get_root_nodes(search_trees, games, evaluation)
         positions_to_search = []
         finished_placeholders = []
         id_counter = 0

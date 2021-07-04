@@ -11,7 +11,7 @@ from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
 
 
 class MCTSNode:
-    def __init__(self, board_state: AmoebaBoard, has_game_ended=False):
+    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1):
         self.board_state: AmoebaBoard = board_state
         self.expected_move_rewards: np.ndarray[np.float32] = np.zeros(board_state.get_shape(), dtype=np.float32)
         self.forward_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
@@ -23,6 +23,7 @@ class MCTSNode:
         self.game_has_ended = has_game_ended
         self.reward = None
         self.pending_policy_calculation = False
+        self.turn = turn
 
     def set_game_ended(self, move):
         player_won, is_draw = AmoebaGame.check_game_ended(self.board_state, move)
@@ -63,8 +64,8 @@ class MCTSNode:
 
 
 class MCTSRootNode(MCTSNode):
-    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, eps=0.25):
-        super().__init__(board_state, has_game_ended)
+    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1, eps=0.25):
+        super().__init__(board_state, has_game_ended, turn)
         self.eps = eps
 
     def set_policy(self, policy):
@@ -93,26 +94,24 @@ class MCTSAgent(NeuralAgent):
         return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
-        game_boards = [game.map for game in games]
-        search_nodes = self.get_root_nodes(None, game_boards)
+        search_nodes = self.get_root_nodes(None, games, evaluation)
         for i in range(self.search_count):
             for node in search_nodes:
                 self.run_search(node, player, set())
         return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
 
-    def get_root_nodes(self, search_trees, game_boards, evaluation):
+    def get_root_nodes(self, search_trees, games, evaluation):
         nodes = []
         if evaluation:
             eps = 0
         else:
             eps = self.dirichlet_ratio
 
-        for game_board, search_tree in zip(game_boards, search_trees):
-            board_copy = game_board.copy()
-            search_node = search_tree.get(board_copy)
-            root_node = MCTSRootNode(board_copy)
+        for game, search_tree in zip(games, search_trees):
+            board_copy = game.map.copy()
+            search_node = search_tree.get_existing_search_node(board_copy, game.num_steps)
+            root_node = MCTSRootNode(board_copy, turn=game.num_steps, eps=eps)
             if search_node is not None:
-                root_node = MCTSRootNode(board_copy, eps=eps)
                 root_node.set_policy(search_node.neural_network_policy)
             nodes.append(root_node)
 
@@ -125,17 +124,6 @@ class MCTSAgent(NeuralAgent):
             probabilities = action_visited_counts / np.sum(action_visited_counts)
             action_probabilities.append(probabilities)
         return action_probabilities
-
-    def get_search_node_of_state(self, search_tree, board_state, move=None):
-        search_node = search_tree.get(board_state)
-        if search_node is not None:
-            return search_node
-        else:
-            new_node = MCTSNode(board_state)
-            if move is not None:
-                new_node.set_game_ended(move)
-            search_tree[board_state] = new_node
-            return new_node
 
     def get_probability_distribution(self, search_node, player):
         game_board = search_node.board_state.cells
@@ -178,10 +166,9 @@ class MCTSAgent(NeuralAgent):
             if index >= number_of_valid_moves:
                 break
             move_2d = tuple(np.unravel_index(move, search_node.board_state.get_shape()))
-            new_board_state = search_node.get_board_state_after_move(move_2d, player)
-            node_to_be_searced = self.get_search_node_of_state(search_tree, new_board_state, move_2d)
-            if not node_to_be_searced.pending_policy_calculation:
-                return move_2d, node_to_be_searced
+            chosen_move_node = search_tree.get_the_node_of_move(search_node, move_2d, player)
+            if not chosen_move_node.pending_policy_calculation:
+                return move_2d, chosen_move_node
         return None, None
 
     def format_input(self, game_boards: List[np.ndarray], players=None):
