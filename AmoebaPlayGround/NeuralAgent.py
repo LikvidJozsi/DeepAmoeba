@@ -5,8 +5,6 @@ from typing import List
 
 import numpy as np
 import ray
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 import tensorflow as tf
 from tensorflow.keras.models import Model
 
@@ -16,6 +14,7 @@ from AmoebaPlayGround.NetworkModels import NetworkModel
 
 models_folder = 'Models/'
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 

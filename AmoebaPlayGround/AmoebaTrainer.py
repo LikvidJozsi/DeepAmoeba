@@ -33,9 +33,9 @@ class AmoebaTrainer:
             print('\nEpisode %d:' % episode_index)
             statistics = Statistics()
             for teacher_index, teaching_agent in enumerate(self.teaching_agents):
-                print('Playing games against ' + teaching_agent.get_name())
+                # print('Playing games against ' + teaching_agent.get_name())
                 _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
-                    self.batch_size, self.learning_agent, teaching_agent, evaluation=False)
+                    self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
                 print('Average game length against %s: %f' % (
                     teaching_agent.get_name(), group_statistics.get_average_game_length()))
                 self.training_samples.extend(training_samples_from_agent)

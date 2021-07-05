@@ -1,20 +1,21 @@
-import sys
 import time
 
 from AmoebaPlayGround.Amoeba import AmoebaGame, Player
 from AmoebaPlayGround.Logger import Statistics
 from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.ProgressPrinter import BaseProgressPrinter
 from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, TrainingSampleCollection
 
 
 class GameGroup:
     def __init__(self, batch_size, x_agent=None, o_agent=None,
-                 view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator, log_progress=False,
-                 move_selector=MaximalMoveSelector(), evaluation=False, reversed_agent_order=False):
+                 view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator,
+                 move_selector=MaximalMoveSelector(), evaluation=False, reversed_agent_order=False,
+                 progress_printer=BaseProgressPrinter()):
         self.reversed_agent_order = reversed_agent_order
         self.x_agent = x_agent
         self.o_agent = o_agent
-        self.log_progress = log_progress
+        self.progress_printer = progress_printer
         self.games = []
         self.move_selector = move_selector
         self.training_sample_generators = []
@@ -33,12 +34,9 @@ class GameGroup:
         finished_games = []
         number_of_games = len(self.games)
         training_samples = TrainingSampleCollection()
-        avg_turn_length_sec = 0
+        sum_turn_length_sec = 0
         turn_number = 0
         statistics = Statistics()
-        if self.log_progress:
-            print("Playing {count} games between {agent_1} and {agent_2}:".
-                  format(count=number_of_games, agent_1=self.x_agent.get_name(), agent_2=self.o_agent.get_name()))
         while len(self.games) != 0:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
@@ -59,21 +57,19 @@ class GameGroup:
                     training_samples_from_game = training_sample_generator.get_training_data(game.winner)
                     training_samples.extend(training_samples_from_game)
             turn_length_per_game_sec = (time_after_step - time_before_step) / len(self.games)
+            sum_turn_length_sec += turn_length_per_game_sec
             self.games = [game for game in self.games if not game in finished_games]
             turn_number += 1
+            self.progress_printer.print_progress(len(finished_games) / number_of_games, turn_number,
+                                                 turn_length_per_game_sec,
+                                                 step_statistics)
 
-            avg_turn_length_sec = avg_turn_length_sec * (
-                    turn_number - 1) / turn_number + turn_length_per_game_sec / turn_number
-            self.print_progress(len(finished_games) / number_of_games, turn_number, turn_length_per_game_sec,
-                                step_statistics)
-
-        if self.log_progress:
-            print("Batch finished, avg_turn_time: {:.3f}".format(avg_turn_length_sec))
+        avg_time_per_turn_per_game = sum_turn_length_sec / turn_number
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)
         statistics.game_count = len(finished_games)
         games_player_1_won, games_player_2_won, draws = self.get_win_statistics(finished_games)
         statistics.add_win_statistics(games_player_1_won, games_player_2_won, draws)
-        return finished_games, training_samples, statistics
+        return finished_games, training_samples, statistics, avg_time_per_turn_per_game
 
     def get_win_statistics(self, games):
         games_player_1_won = 0
@@ -103,16 +99,3 @@ class GameGroup:
             return self.o_agent
         else:
             return self.x_agent
-
-    def print_progress(self, progress, turn, time, extra_search_data):
-        if self.log_progress:
-            barLength = 20
-            status = "in progress"
-            if progress >= 1:
-                progress = 1
-                status = "done\r\n"
-            block = int(round(barLength * progress))
-            text = "\r[{0}] {1:.1f}%, turn number: {2} , turn time: {3:.4f}, {4}, status: {5}".format(
-                "#" * block + "-" * (barLength - block), progress * 100, turn, time, extra_search_data, status)
-            sys.stdout.write(text)
-            sys.stdout.flush()

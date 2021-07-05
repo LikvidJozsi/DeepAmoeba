@@ -7,9 +7,9 @@ from AmoebaPlayGround.Puzzles import PuzzleEvaluator
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
 fix_reference_agents = [ReferenceAgent(name='random_agent', instance=RandomAgent(),
-                                       evaluation_match_count=10),
+                                       evaluation_match_count=12),
                         ReferenceAgent(name='hand_written_agent', instance=HandWrittenAgent(),
-                                       evaluation_match_count=10)
+                                       evaluation_match_count=12)
                         ]
 
 
@@ -22,7 +22,7 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, game_executor, evaluation_match_count=20, puzzle_variation_count=50):
+    def __init__(self, game_executor, evaluation_match_count=24, puzzle_variation_count=50):
         self.game_executor = game_executor
         self.reference_agent = None
         self.reference_agent_rating = None
@@ -67,7 +67,7 @@ class EloEvaluator(Evaluator):
 
     def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         games, _, statistics = self.game_executor.play_games_between_agents(
-            evaluation_match_count, agent_to_evaluate, reference_agent, evaluation=True)
+            evaluation_match_count, agent_to_evaluate, reference_agent, evaluation=True, print_progress=True)
         return statistics.games_won_by_player_1, statistics.draw_games, statistics.get_average_game_length()
 
     def set_reference_agent(self, agent: AmoebaAgent, rating=1000):
