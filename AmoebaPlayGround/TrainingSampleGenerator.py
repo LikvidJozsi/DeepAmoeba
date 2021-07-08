@@ -4,7 +4,7 @@ from AmoebaPlayGround.GameBoard import Player
 
 
 class TrainingSampleCollection:
-    def __init__(self, board_states=None, move_probabilities=None, rewards=None, max_size=50000):
+    def __init__(self, board_states=None, move_probabilities=None, rewards=None, max_size=200000):
         if rewards is None:
             rewards = []
         if board_states is None:
@@ -31,6 +31,12 @@ class TrainingSampleCollection:
         self.board_states.extend(training_sample_collection.board_states)
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
         self.rewards.extend(training_sample_collection.rewards)
+
+    def print(self):
+        for board_state, probabilities, reward in zip(self.board_states, self.move_probabilities, self.rewards):
+            print(board_state)
+            print(probabilities)
+            print(reward)
 
 
 class PlaceholderTrainingSampleGenerator:

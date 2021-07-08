@@ -90,10 +90,10 @@ class AnyFromHighestLevelSelection(MoveSelectionMethod):
         self.best_moves = []
         self.probabilites = None
 
-    def reset(self,shape):
+    def reset(self, shape):
         self.probabilites = np.zeros(shape, dtype=np.float32)
 
-    def new_same_level_move(self, move,value):
+    def new_same_level_move(self, move, value):
         self.probabilites[move] = value + 1
 
     def select_move(self) -> np.ndarray:
@@ -107,11 +107,13 @@ class HandWrittenAgent(AmoebaAgent):
         self.move_selector = move_selector
 
     def get_step(self, games: List[Amoeba.AmoebaGame], player, evaluation=False):
-        game_boards = [game.map for game in games]
         steps = []
-        for board in game_boards:
-            self.board: AmoebaBoard = board
-            steps.append(self.get_step_for_game(player))
+        for game in games:
+            self.board: AmoebaBoard = game.map
+            if game.num_steps > 0:
+                steps.append(self.get_step_for_game(player))
+            else:
+                steps.append(self.get_random_start(game.map))
         return steps, Statistics()
 
     def get_step_for_game(self, player):

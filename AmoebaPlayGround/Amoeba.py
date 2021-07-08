@@ -28,19 +28,18 @@ class AmoebaGame:
         game_id_counter += 1
         if board_state is None:
             self.init_map()
-            self.previous_player = Player.X
+            self.previous_player = Player.O
         self.history = []
         self.winner = None
-        self.num_steps = 1
+        self.num_steps = 0
         if self.view is not None:
             self.view.display_game_state(self.map)
 
-    def get_board_of_previous_player(self):
-        return self.map.get_numeric_representation_for_player(self.previous_player)
+    def get_board_of_next_player(self):
+        return self.map.get_numeric_representation_for_player(self.get_next_player())
 
     def init_map(self):
         self.map.reset()
-        self.place_initial_symbol()
 
     def get_next_player(self):
         return self.previous_player.get_other_player()

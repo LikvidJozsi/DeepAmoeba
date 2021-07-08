@@ -1,3 +1,4 @@
+import random
 from typing import List
 
 import numpy as np
@@ -23,12 +24,22 @@ class AmoebaAgent:
     def reset(self):
         pass
 
+    def get_random_start(self, board):
+        map_size = board.get_shape()
+        middle = (int(map_size[0] / 2), int(map_size[1] / 2))
+        move = (random.randint(-1, 1) + middle[0], random.randint(-1, 1) + middle[1])
+        probability_map = np.zeros(map_size, dtype=np.float32)
+        probability_map[move] = 1
+        return probability_map
+
+
 class PlaceholderAgent(AmoebaAgent):
     def __init__(self, name):
         self.name = name
 
     def get_name(self):
         return self.name
+
 
 class ConsoleAgent(AmoebaAgent):
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
@@ -51,10 +62,12 @@ class RandomAgent(AmoebaAgent):
         self.max_move_distance = move_max_distance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
-        game_boards = [game.map for game in games]
         steps = []
-        for game_board in game_boards:
-            steps.append(self.get_move_probabilities(game_board))
+        for game in games:
+            if game.num_steps > 0:
+                steps.append(self.get_move_probabilities(game.map))
+            else:
+                steps.append(self.get_random_start(game.map))
         return steps, Statistics()
 
     def get_move_probabilities(self, game_board: AmoebaBoard):

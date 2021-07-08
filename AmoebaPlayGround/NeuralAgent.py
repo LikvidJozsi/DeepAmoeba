@@ -3,6 +3,8 @@ import os
 from abc import ABC, abstractmethod
 from typing import List
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
+
 import numpy as np
 import ray
 import tensorflow as tf
@@ -14,7 +16,6 @@ from AmoebaPlayGround.NetworkModels import NetworkModel
 
 models_folder = 'Models/'
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
@@ -49,7 +50,7 @@ class NeuralAgent(AmoebaAgent, ABC):
 
     def load_model(self, file_path):
         self.model: Model = tf.keras.models.load_model(file_path)
-        self.map_size = self.model.get_layer(index=0).output_shape[1:3]
+        self.map_size = tuple(self.model.get_layer(index=0).output_shape[1:3])
 
     def get_model_file_path(self, model_name):
         return os.path.join(models_folder, model_name + '.h5')

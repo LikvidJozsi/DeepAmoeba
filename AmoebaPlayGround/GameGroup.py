@@ -45,13 +45,13 @@ class GameGroup:
                                                                         self.evaluation)
             statistics.merge_statistics(step_statistics)
             time_after_step = time.time()
-            for game, training_sample_generator, action_probabilities in zip(self.games,
-                                                                             self.training_sample_generators,
-                                                                             action_probabilities):
-                action = self.move_selector.select_move(action_probabilities)
+            for game, training_sample_generator, action_probability_map in zip(self.games,
+                                                                               self.training_sample_generators,
+                                                                               action_probabilities):
+                action = self.move_selector.select_move(action_probability_map)
+                training_sample_generator.add_move(game.get_board_of_next_player(), action_probability_map,
+                                                   game.get_next_player())
                 game.step(action)
-                training_sample_generator.add_move(game.get_board_of_previous_player(), action_probabilities,
-                                                   game.previous_player)
                 if game.has_game_ended():
                     finished_games.append(game)
                     training_samples_from_game = training_sample_generator.get_training_data(game.winner)

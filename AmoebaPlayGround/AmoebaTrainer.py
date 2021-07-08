@@ -48,9 +48,8 @@ class AmoebaTrainer:
             logger.log("loss", last_loss)
 
             print('Evaluating agent:')
-            agent_rating = self.evaluator.evaluate_agent(self.learning_agent, logger)
+            self.evaluator.evaluate_agent(self.learning_agent, logger)
 
-            print('Learning agent rating: %f' % agent_rating)
             logger.new_episode()
             if model_save_file != "":
                 self.learning_agent.save(model_save_file)
