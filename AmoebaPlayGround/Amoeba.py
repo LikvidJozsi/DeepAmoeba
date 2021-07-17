@@ -1,7 +1,10 @@
 import copy
 from typing import List
 
+import numpy as np
+
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMBOL
+from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
 
 game_id_counter = 0
 win_sequence_length = 5
@@ -34,6 +37,24 @@ class AmoebaGame:
         self.num_steps = 0
         if self.view is not None:
             self.view.display_game_state(self.map)
+
+    def play_game(self, x_agent, o_agent, hightlight_agent=None):
+        agents = [x_agent, o_agent]
+        current_agent_index = 0
+        move_selector = MaximalMoveSelector()
+        while (not self.has_game_ended()):
+            current_agent = agents[current_agent_index]
+
+            if hightlight_agent is not None:
+                formatted_input = hightlight_agent.format_input([self.map.cells], [self.get_next_player()])
+                output_2d, value = hightlight_agent.model.predict(formatted_input, batch_size=1)
+                print(output_2d)
+                color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)
+                self.view.display_background_color_intensities(color_intensities)
+            action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player(), True)
+            action = move_selector.select_move(action_probabilities[0])
+            self.step(action)
+            current_agent_index = (current_agent_index + 1) % 2
 
     def get_board_of_next_player(self):
         return self.map.get_numeric_representation_for_player(self.get_next_player())
@@ -76,6 +97,8 @@ class AmoebaGame:
         return moves
 
     def has_game_ended(self):
+        if len(self.history) == 0:
+            return False
         last_action = self.history[-1]
         player_won, is_draw = AmoebaGame.check_game_ended(self.map, last_action)
         if player_won:

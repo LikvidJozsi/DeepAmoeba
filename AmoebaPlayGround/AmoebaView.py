@@ -27,7 +27,7 @@ class ConsoleView(AmoebaView):
                 print(self.get_cell_representation(cell), end='')
             print()
 
-    def get_cell_representation(self,cell: int):
+    def get_cell_representation(self, cell: int):
         if cell == EMPTY_SYMBOL:
             return '.'
         if cell == X_SYMBOL:
@@ -44,11 +44,12 @@ class ConsoleView(AmoebaView):
 
 
 class BoardCell:
-    def __init__(self, window, row, column, symbol_size):
+    def __init__(self, window, row, column, symbol_size, color_intensity=0):
         self.symbol = EMPTY_SYMBOL
         self.symbol_size = symbol_size
         self.row = row
         self.column = column
+        self.color_intensity = color_intensity
         self.canvas = Canvas(window, width=symbol_size, height=symbol_size)
         self.canvas['bg'] = 'white'
         self.canvas.grid(column=column, row=row, padx=2, pady=2)
@@ -58,6 +59,14 @@ class BoardCell:
 
     def is_empty(self):
         return self.symbol == EMPTY_SYMBOL
+
+    def convert_rgb_to_tkinter_color_string(self, rgb):
+        return "#%02x%02x%02x" % rgb
+
+    def update_background_color(self, new_color_intensity):
+        self.color_intensity = new_color_intensity
+        background_color = (255, 255 - self.color_intensity, 255 - self.color_intensity)
+        self.canvas.configure(bg=self.convert_rgb_to_tkinter_color_string(background_color))
 
     def update(self, new_symbol):
         if self.symbol != new_symbol:
@@ -83,6 +92,7 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         self.board_size = board_size
         self.board_update_queue = queue.Queue()
         self.message_queue = queue.Queue()
+        self.board_color_queue = queue.Queue()
         self.clicked_cell = None
         self.move_entered_event = threading.Event()
         gui_thread = threading.Thread(target=self.create_window)
@@ -122,6 +132,9 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         if not self.board_update_queue.empty():
             game_board = self.board_update_queue.get()
             self.update_board(game_board)
+        if not self.board_color_queue.empty():
+            color_intensities = self.board_color_queue.get()
+            self.update_board_background_color(color_intensities)
         if not self.message_queue.empty():
             message = self.message_queue.get()
             self.display_message(message)
@@ -131,6 +144,12 @@ class GraphicalView(AmoebaView, AmoebaAgent):
     def display_message(self, message):
         label = Label(self.window, text=message)
         label.grid(column=0, row=0, columnspan=6)
+
+    def update_board_background_color(self, color_intensities):
+        for row_index, row in enumerate(self.game_board):
+            for column_index, cell in enumerate(row):
+                new_color_intensity = color_intensities[row_index, column_index]
+                cell.update_background_color(new_color_intensity)
 
     def update_board(self, game_board: AmoebaBoard):
         self.validate_game_board_update(game_board)
@@ -152,6 +171,9 @@ class GraphicalView(AmoebaView, AmoebaAgent):
         action_map = np.zeros(self.board_size)
         action_map[self.clicked_cell] = 1
         return [action_map, ], Statistics()
+
+    def display_background_color_intensities(self, background_intensities):
+        self.board_color_queue.put(background_intensities)
 
     def display_game_state(self, game_board):
         self.board_update_queue.put(game_board)
