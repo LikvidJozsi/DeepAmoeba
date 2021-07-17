@@ -85,4 +85,4 @@ class NeuralAgent(AmoebaAgent, ABC):
 
     @abstractmethod
     def train(self, training_samples: List[np.ndarray]):
-        pass
+        self.model_type.train(self.model, training_samples)
