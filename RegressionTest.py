@@ -1,27 +1,22 @@
-import sys
-
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.GameBoard import Player
-from AmoebaPlayGround.MCTSAgent import MCTSAgent
+from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
 
-import numpy as np
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
-sys.setrecursionlimit(5000)
 
-
-batch_agent = BatchMCTSAgent(load_latest_model=False,batch_size=1)
+batch_agent = BatchMCTSAgent(load_latest_model=False, model_name="2021-06-21_20-22-27", batch_size=1)
 batch_agent.save("regression_test")
-print("miva")
-simple_agent = MCTSAgent(model_name="regression_test")
-print("mivaa")
+# simple_agent = MCTSAgent(model_name="regression_test")
 game = AmoebaGame(None)
-input = [game.map]
-batch_probs = batch_agent.get_step(input,Player.O)
-print("mivaaa")
-simple_probs = simple_agent.get_step(input,Player.O)
-print(batch_probs)
-print(simple_probs)
-print("the two outputs are equal: " + str(np.array_equal(batch_probs,simple_probs)))
+batch_probs, _ = batch_agent.get_step([game], Player.O)
+move_selector = MaximalMoveSelector()
+selected_move = move_selector.select_move(batch_probs[0])
+# simple_probs = simple_agent.get_step(input,Player.O)
+print(game.map.cells)
+print(selected_move)
+
+'''print(simple_probs)
+print("the two outputs are equal: " + str(np.array_equal(batch_probs,simple_probs)))'''

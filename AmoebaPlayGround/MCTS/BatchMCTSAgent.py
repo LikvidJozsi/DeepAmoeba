@@ -5,9 +5,10 @@ import numpy as np
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Logger import Statistics
-from AmoebaPlayGround.MCTSAgent import MCTSAgent, MCTSNode
-from AmoebaPlayGround.MCTSTree import MCTSTree
-from AmoebaPlayGround.NetworkModels import NetworkModel, PolicyValueNetwork
+from AmoebaPlayGround.MCTS.BaseMCTSTree import MCTSNode
+from AmoebaPlayGround.MCTS.MCTSAgent import MCTSAgent
+from AmoebaPlayGround.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.NetworkModels import NetworkModel, ResNetLike
 
 
 class PositionToSearch:
@@ -23,13 +24,15 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = PolicyValueNetwork(), search_count=100, exploration_rate=1.4,
-                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8)):
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
+                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8),
+                 tree_type=MCTSTree):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size)
         self.batch_size = batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
+        self.tree_type = tree_type
 
     def reset_statistics(self):
         self.statistics = Statistics()
@@ -37,7 +40,7 @@ class BatchMCTSAgent(MCTSAgent):
     def get_copy(self):
         new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
                                       exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
-                                      dirichlet_ratio=self.dirichlet_ratio,
+                                      dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type,
                                       batch_size=self.batch_size, map_size=self.map_size)
         new_instance.set_weights(self.get_weights())
         return new_instance
@@ -48,7 +51,7 @@ class BatchMCTSAgent(MCTSAgent):
         positions_to_search, finished_positions = self.get_positions_to_search(search_trees, games, evaluation)
 
         while len(positions_to_search) > 0:
-            paths, leaf_nodes, last_players = self.run_selection(positions_to_search.copy(), player)
+            paths, leaf_nodes, last_players = self.run_selection(positions_to_search, player)
             if len(leaf_nodes) > 0:
                 policies, values = self.run_simulation(leaf_nodes, last_players)
                 self.set_policies(leaf_nodes, policies)
@@ -68,7 +71,7 @@ class BatchMCTSAgent(MCTSAgent):
                 stored_tree.set_turn(game.num_steps)
                 trees.append(stored_tree)
             else:
-                new_tree = MCTSTree(game.num_steps)
+                new_tree = self.tree_type(game.num_steps)
                 updated_tree_dictionary[game.id] = new_tree
                 trees.append(new_tree)
         self.search_trees = updated_tree_dictionary

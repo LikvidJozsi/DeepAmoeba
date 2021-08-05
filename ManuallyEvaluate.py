@@ -1,9 +1,9 @@
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.AmoebaAgent import RandomAgent
 from AmoebaPlayGround.AmoebaView import GraphicalView
-from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.GameGroup import GameGroup
 from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
+from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
 
 Amoeba.map_size = (15, 15)
 
@@ -11,5 +11,5 @@ graphical_view = GraphicalView(Amoeba.map_size)
 hand_written_agent = HandWrittenAgent()
 random_agent = RandomAgent()
 neural_agent = BatchMCTSAgent(search_count=1000, load_latest_model=True, batch_size=200, map_size=Amoeba.map_size)
-game = GameGroup(batch_size=1, x_agent=graphical_view, o_agent=neural_agent, view=graphical_view)
+game = GameGroup(batch_size=1, x_agent=graphical_view, o_agent=graphical_view, view=graphical_view)
 finished_games, training_samples, statistics, avg_time_per_turn_per_game = game.play_all_games()

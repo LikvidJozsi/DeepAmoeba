@@ -96,6 +96,9 @@ class AmoebaGame:
             player = player.get_other_player()
         return moves
 
+    def get_moves_since_turn(self, starting_turn_index):
+        return self.history[starting_turn_index:self.num_steps]
+
     def has_game_ended(self):
         if len(self.history) == 0:
             return False
@@ -143,7 +146,7 @@ class AmoebaGame:
         max_pos_offset = min(max_x_pos_offset, max_y_pos_offset)
 
         line_length = 0
-        for offset in range(-max_neg_offset, max_pos_offset + 1):
+        for offset in range(1, max_pos_offset + 1):
             # depending on the direction of the line being searched direction may be 0 meaning the coordinate does
             # not change on any iterations
             x = move[0] + offset * dir_vector[0]
@@ -151,12 +154,19 @@ class AmoebaGame:
             if game_board.get((x, y)) == player_symbol:
                 line_length += 1
             else:
-                line_length = 0
-            if max_pos_offset - offset + line_length < max_distance + 1:
-                return False
-            if line_length == win_sequence_length:
-                return True
-        return False
+                break
+
+        for offset in range(-1, -max_neg_offset - 1, -1):
+            # depending on the direction of the line being searched direction may be 0 meaning the coordinate does
+            # not change on any iterations
+            x = move[0] + offset * dir_vector[0]
+            y = move[1] + offset * dir_vector[1]
+            if game_board.get((x, y)) == player_symbol:
+                line_length += 1
+            else:
+                break
+
+        return line_length >= win_sequence_length - 1
 
     @staticmethod
     def is_there_winning_line_in_reverse_diagonal(game_board, player_symbol, move):
@@ -179,20 +189,23 @@ class AmoebaGame:
         max_pos_offset = min(max_x_pos_offset, max_y_neg_offset)
 
         line_length = 0
-        for offset in range(-max_neg_offset, max_pos_offset + 1):
-            # depending on the direction of the line being searched direction may be 0 meaning the coordinate does
-            # not change on any iterations,
+        for offset in range(1, max_pos_offset + 1):
             x = move[0] + offset
             y = move[1] - offset
             if game_board.get((x, y)) == player_symbol:
                 line_length += 1
             else:
-                line_length = 0
-            if max_pos_offset - offset + line_length < max_distance + 1:
-                return False
-            if line_length == win_sequence_length:
-                return True
-        return False
+                break
+
+        for offset in range(-1, - max_neg_offset - 1, -1):
+            x = move[0] + offset
+            y = move[1] - offset
+            if game_board.get((x, y)) == player_symbol:
+                line_length += 1
+            else:
+                break
+
+        return line_length >= win_sequence_length - 1
 
     @staticmethod
     def get_maximum_negative_offset(move_coordinate, line_direction, max_search_distance):

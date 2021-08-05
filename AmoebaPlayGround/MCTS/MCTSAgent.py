@@ -3,75 +3,12 @@ from typing import List, Dict
 import numpy as np
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
+from AmoebaPlayGround.GameBoard import AmoebaBoard
 from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.MCTS.DictMCTSTree import MCTSNode
 from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
 from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
-
-
-class MCTSNode:
-    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1):
-        self.board_state: AmoebaBoard = board_state
-        self.expected_move_rewards: np.ndarray[np.float32] = np.zeros(board_state.get_shape(), dtype=np.float32)
-        self.forward_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
-        self.backward_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
-        self.invalid_moves = board_state.cells != EMPTY_SYMBOL
-        self.invalid_move_count = np.sum(self.invalid_moves)
-        self.visited_count = 0
-        self.neural_network_policy = None
-        self.game_has_ended = has_game_ended
-        self.reward = None
-        self.pending_policy_calculation = False
-        self.turn = turn
-
-    def set_game_ended(self, move):
-        player_won, is_draw = AmoebaGame.check_game_ended(self.board_state, move)
-        # reward from the perspective of the next player
-        # if previous player won, its bad for next player
-        if player_won:
-            self.reward = -1
-            self.game_has_ended = True
-        if is_draw:
-            # reward for draw is 0, but it is subject to change
-            self.game_has_ended = True
-            self.reward = 0
-
-    def set_policy(self, policy):
-        self.neural_network_policy = policy
-
-    def is_unvisited(self):
-        return self.neural_network_policy is None
-
-    def get_board_state_after_move(self, move, player):
-        new_board_state = self.board_state.copy()
-        new_board_state.set(move, player.get_symbol())
-        return new_board_state
-
-    def move_forward_selected(self, move):
-        self.forward_visited_counts[move] += 1
-        self.visited_count += 1
-
-    def has_game_ended(self):
-        return self.game_has_ended
-
-    def update_expected_value_for_move(self, move, simulation_value):
-        visited_count = self.backward_visited_counts[move]
-        expected_reward = self.expected_move_rewards[move]
-        self.expected_move_rewards[move] = (visited_count * expected_reward + simulation_value) / (
-                visited_count + 1)
-        self.backward_visited_counts[move] += 1
-
-
-class MCTSRootNode(MCTSNode):
-    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1, eps=0.25):
-        super().__init__(board_state, has_game_ended, turn)
-        self.eps = eps
-
-    def set_policy(self, policy):
-        board_shape = self.board_state.get_shape()
-        self.neural_network_policy = policy * (1 - self.eps) + self.eps * np.random.dirichlet(
-            [0.03] * np.prod(board_shape)).reshape(board_shape)
 
 
 class MCTSAgent(NeuralAgent):
@@ -87,6 +24,7 @@ class MCTSAgent(NeuralAgent):
         self.dirichlet_ratio = dirichlet_ratio
 
     def get_copy(self):
+        print("this is not getting called right?")
         new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
                                       exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
                                       dirichlet_ratio=self.dirichlet_ratio)
@@ -108,11 +46,7 @@ class MCTSAgent(NeuralAgent):
             eps = self.dirichlet_ratio
 
         for game, search_tree in zip(games, search_trees):
-            board_copy = game.map.copy()
-            search_node = search_tree.get_existing_search_node(board_copy, game.num_steps)
-            root_node = MCTSRootNode(board_copy, turn=game.num_steps, eps=eps)
-            if search_node is not None:
-                root_node.set_policy(search_node.neural_network_policy)
+            root_node = search_tree.get_root_node(game, eps)
             nodes.append(root_node)
 
         return nodes
@@ -154,10 +88,11 @@ class MCTSAgent(NeuralAgent):
         search_node.update_expected_value_for_move(chosen_move, v)
         return -v
 
-    def choose_move(self, search_node, search_tree, player):
-        upper_confidence_bounds = search_node.expected_move_rewards + self.exploration_rate * \
-                                  search_node.neural_network_policy * np.sqrt(search_node.visited_count + 1e-8) / \
-                                  (1 + search_node.forward_visited_counts)
+    def choose_move(self, search_node: MCTSNode, search_tree, player):
+        average_expected_reward = np.where(search_node.backward_visited_counts == 0, 0,
+                                           search_node.sum_expected_move_rewards / search_node.backward_visited_counts)
+        upper_confidence_bounds = average_expected_reward + self.exploration_rate * search_node.neural_network_policy * \
+                                  np.sqrt(search_node.visited_count + 1e-8) / (1 + search_node.forward_visited_counts)
         upper_confidence_bounds[search_node.invalid_moves] = -np.inf
 
         ranked_moves = np.argsort(upper_confidence_bounds.flatten())
@@ -183,12 +118,20 @@ class MCTSAgent(NeuralAgent):
         numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
         return numeric_representation
 
-    def train(self, samples: TrainingSampleCollection):
+    def train(self, samples: TrainingSampleCollection,
+              validation_dataset: TrainingSampleCollection = None,
+              **kwargs):
         print('number of training samples: ' + str(samples.get_length()))
         input = self.format_input(samples.board_states)
         output_policies = np.array(samples.move_probabilities)
         output_values = np.array(samples.rewards)
-        return self.model_type.train(self.model, input, [output_policies, output_values])
+        if validation_dataset is not None:
+            validation_input = self.format_input(validation_dataset.board_states)
+            validation_output_policies = np.array(validation_dataset.move_probabilities)
+            validation_output_values = np.array(validation_dataset.rewards)
+            validation_dataset = (validation_input, [validation_output_policies, validation_output_values])
+        return self.model_type.train(self.model, input, [output_policies, output_values],
+                                     validation_data=validation_dataset, **kwargs)
 
     def get_name(self):
         return 'MCTSAgent'

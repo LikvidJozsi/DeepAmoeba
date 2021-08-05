@@ -44,16 +44,16 @@ class PolicyValueNetwork(NetworkModel):
         value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg))(dense_2)
 
         model = Model(inputs=input, outputs=[policy, value])
-        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=Adam(lr=0.001))
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=Adam(learning_rate=0.001))
         return model
 
     def train(self, model, train_inputs, train_outputs):
         return model.fit(x=train_inputs, y=train_outputs, epochs=self.training_epochs, shuffle=True,
-                         verbose=2, batch_size=self.batch_size)
+                         verbose=1, batch_size=self.batch_size)
 
 
 class ResNetLike(NetworkModel):
-    def __init__(self, network_depth=8, reg=1e-5, training_epochs=20, batch_size=16):
+    def __init__(self, network_depth=8, reg=0.00001, training_epochs=12, batch_size=16):
         self.network_depth = network_depth
         self.reg = reg
         self.training_epochs = training_epochs
@@ -70,8 +70,8 @@ class ResNetLike(NetworkModel):
         value = self.get_value_head(current_network_end)
 
         model = Model(inputs=input, outputs=[policy, value])
-        optimizer = Adam(lr=0.001)
-        # optimizer = SGD(lr=0.01)
+        optimizer = Adam(learning_rate=0.001)
+        # optimizer = SGD(learning_rate=0.01)
         model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer)
         return model
 
@@ -111,6 +111,9 @@ class ResNetLike(NetworkModel):
 
         return output
 
-    def train(self, model, train_inputs, train_outputs):
-        return model.fit(x=train_inputs, y=train_outputs, epochs=self.training_epochs, shuffle=True,
-                         verbose=2, batch_size=self.batch_size)
+    def train(self, model, train_inputs, train_outputs, **kwargs):
+        if "epochs" not in kwargs:
+            kwargs["epochs"] = self.training_epochs
+
+        return model.fit(x=train_inputs, y=train_outputs, shuffle=True,
+                         verbose=1, batch_size=self.batch_size, **kwargs)

@@ -1,17 +1,23 @@
 import pickle
 
 from AmoebaPlayGround import Amoeba
-from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.GameParallelizer import ParallelGameExecutor
+from AmoebaPlayGround.GameParallelizer import SingleThreadGameExecutor
+from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
 
 Amoeba.map_size = (15, 15)
 
-neural_agent = BatchMCTSAgent(search_count=500, load_latest_model=False, batch_size=200, map_size=Amoeba.map_size)
+neural_agent = BatchMCTSAgent(search_count=500, load_latest_model=False, batch_size=200, map_size=Amoeba.map_size,
+                              tree_type=MCTSTree)
 
-game_executor = ParallelGameExecutor(neural_agent, neural_agent, 6)
-# game_executor = SingleThreadGameExecutor()
-_, training_samples, _ = game_executor.play_games_between_agents(240, neural_agent, neural_agent, evaluation=False,
-                                                                 print_progress=True)
+# game_executor = ParallelGameExecutor(neural_agent, neural_agent, 8)
+game_executor = SingleThreadGameExecutor()
+combined_training_samples = TrainingSampleCollection()
+for i in range(8):
+    _, training_samples, _ = game_executor.play_games_between_agents(60, neural_agent, neural_agent, evaluation=False,
+                                                                     print_progress=True)
+    combined_training_samples.extend(training_samples)
 
-with open("test_dataset.p", 'wb') as file:
-    pickle.dump(training_samples, file)
+with open("large_dataset.p", 'wb') as file:
+    pickle.dump(combined_training_samples, file)

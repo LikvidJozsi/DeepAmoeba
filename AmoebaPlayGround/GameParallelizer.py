@@ -5,9 +5,9 @@ from ray.util import ActorPool
 
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.AmoebaAgent import PlaceholderAgent
-from AmoebaPlayGround.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.GameGroup import GameGroup
 from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.MoveSelector import DistributionMoveSelector
 from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, ParallelProgressPrinterActor, \

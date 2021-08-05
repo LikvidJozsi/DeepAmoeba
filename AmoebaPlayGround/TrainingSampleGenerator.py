@@ -4,16 +4,20 @@ from AmoebaPlayGround.GameBoard import Player
 
 
 class TrainingSampleCollection:
-    def __init__(self, board_states=None, move_probabilities=None, rewards=None, max_size=200000):
+    def __init__(self, board_states=None, move_probabilities=None, rewards=None, max_size=None):
         if rewards is None:
             rewards = []
         if board_states is None:
             board_states = []
         if move_probabilities is None:
             move_probabilities = []
-        self.board_states = board_states[0:min(max_size, len(board_states))]
-        self.move_probabilities = move_probabilities[0:min(max_size, len(move_probabilities))]
-        self.rewards = rewards[0:min(max_size, len(rewards))]
+        if max_size is not None:
+            board_states = board_states[0:min(max_size, len(board_states))]
+            move_probabilities = move_probabilities[0:min(max_size, len(move_probabilities))]
+            rewards = rewards[0:min(max_size, len(rewards))]
+        self.board_states = board_states
+        self.move_probabilities = move_probabilities
+        self.rewards = rewards
         self.max_size = max_size
 
     def get_length(self):
@@ -25,9 +29,10 @@ class TrainingSampleCollection:
         self.rewards = self.rewards[count:]
 
     def extend(self, training_sample_collection):
-        free_space = self.max_size - self.get_length()
-        samples_to_remove = max(training_sample_collection.get_length() - free_space, 0)
-        self.remove_samples_from_front(samples_to_remove)
+        if self.max_size is not None:
+            free_space = self.max_size - self.get_length()
+            samples_to_remove = max(training_sample_collection.get_length() - free_space, 0)
+            self.remove_samples_from_front(samples_to_remove)
         self.board_states.extend(training_sample_collection.board_states)
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
         self.rewards.extend(training_sample_collection.rewards)
