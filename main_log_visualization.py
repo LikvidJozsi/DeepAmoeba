@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from AmoebaPlayGround.AmoebaTrainer import logs_folder
+from AmoebaPlayGround.Training.AmoebaTrainer import logs_folder
 
 list_of_files = glob.glob(os.path.join(logs_folder, '*.log'))
 latest_file = max(list_of_files, key=os.path.getctime)

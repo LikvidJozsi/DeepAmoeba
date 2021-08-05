@@ -5,11 +5,11 @@ from typing import List
 
 import numpy as np
 
+from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.Amoeba import Player, AmoebaGame
-from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL, X_SYMBOL, O_SYMBOL
 # The display function of a view is called by the AmoebaGame at init time and after every move
-from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.Training.Logger import Statistics
 
 
 class AmoebaView:

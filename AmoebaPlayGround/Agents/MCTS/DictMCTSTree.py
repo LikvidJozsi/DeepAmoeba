@@ -1,5 +1,5 @@
+from AmoebaPlayGround.Agents.MCTS.BaseMCTSTree import MCTSNode, MCTSRootNode, BaseMCTSTree
 from AmoebaPlayGround.GameBoard import AmoebaBoard
-from AmoebaPlayGround.MCTS.BaseMCTSTree import MCTSNode, MCTSRootNode, BaseMCTSTree
 
 
 class BasicDictMCTSTree(BaseMCTSTree):

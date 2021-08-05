@@ -5,9 +5,9 @@ from typing import List
 import numpy as np
 
 import AmoebaPlayGround.Amoeba as Amoeba
-from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
+from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
-from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.Training.Logger import Statistics
 
 Importance = collections.namedtuple('Importance', 'level value')
 

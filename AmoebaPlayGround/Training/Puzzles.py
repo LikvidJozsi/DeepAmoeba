@@ -5,10 +5,10 @@ import random
 import numpy as np
 
 from AmoebaPlayGround import Amoeba
+from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.GameBoard import Player
-from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 
 class Puzzle:

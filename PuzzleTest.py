@@ -1,11 +1,9 @@
 import AmoebaPlayGround.Amoeba as Amoeba
-from AmoebaPlayGround.Input import get_model_filename
-from AmoebaPlayGround.Logger import Logger
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.MCTS.MCTSTree import MCTSTree
-from AmoebaPlayGround.Puzzles import PuzzleEvaluator
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.Training.Logger import Logger
+from AmoebaPlayGround.Training.Puzzles import PuzzleEvaluator
 
-file_name = get_model_filename()
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 

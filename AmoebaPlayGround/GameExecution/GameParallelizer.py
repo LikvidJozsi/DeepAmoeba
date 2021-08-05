@@ -4,15 +4,16 @@ import ray
 from ray.util import ActorPool
 
 from AmoebaPlayGround import Amoeba
-from AmoebaPlayGround.AmoebaAgent import PlaceholderAgent
-from AmoebaPlayGround.GameGroup import GameGroup
-from AmoebaPlayGround.Logger import Statistics
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.MoveSelector import DistributionMoveSelector
-from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
-from AmoebaPlayGround.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, ParallelProgressPrinterActor, \
+from AmoebaPlayGround.Agents.AmoebaAgent import PlaceholderAgent
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
+from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
+from AmoebaPlayGround.GameExecution.MoveSelector import DistributionMoveSelector
+from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
+    ParallelProgressPrinterActor, \
     SingleThreadedProgressPrinter
-from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, \
+from AmoebaPlayGround.Training.Logger import Statistics
+from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, \
     TrainingSampleCollection, PlaceholderTrainingSampleGenerator
 
 

@@ -2,7 +2,7 @@ import sys
 
 import ray
 
-from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.Training.Logger import Statistics
 
 
 class BaseProgressPrinter:

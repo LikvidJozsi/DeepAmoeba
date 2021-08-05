@@ -1,9 +1,9 @@
 import AmoebaPlayGround.Amoeba as Amoeba
-from AmoebaPlayGround.AmoebaAgent import RandomAgent
+from AmoebaPlayGround.Agents.AmoebaAgent import RandomAgent
+from AmoebaPlayGround.Agents.HandWrittenAgent import HandWrittenAgent
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.AmoebaView import GraphicalView
-from AmoebaPlayGround.GameGroup import GameGroup
-from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 
 Amoeba.map_size = (15, 15)
 

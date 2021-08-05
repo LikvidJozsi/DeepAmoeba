@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMBOL
-from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 game_id_counter = 0
 win_sequence_length = 5

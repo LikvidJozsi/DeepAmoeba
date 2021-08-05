@@ -1,8 +1,8 @@
-from AmoebaPlayGround import AmoebaAgent
-from AmoebaPlayGround.Evaluator import EloEvaluator
-from AmoebaPlayGround.GameParallelizer import ParallelGameExecutor
-from AmoebaPlayGround.Logger import Logger, Statistics
-from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
+from AmoebaPlayGround.Agents import AmoebaAgent
+from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
+from AmoebaPlayGround.Training.Evaluator import EloEvaluator
+from AmoebaPlayGround.Training.Logger import Logger, Statistics
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 
 class AmoebaTrainer:

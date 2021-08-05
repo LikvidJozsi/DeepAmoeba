@@ -1,10 +1,10 @@
 import pickle
 
 from AmoebaPlayGround import Amoeba
-from AmoebaPlayGround.GameParallelizer import SingleThreadGameExecutor
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.MCTS.MCTSTree import MCTSTree
-from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.GameExecution.GameParallelizer import SingleThreadGameExecutor
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 Amoeba.map_size = (15, 15)
 

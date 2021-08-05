@@ -4,10 +4,10 @@ import pickle
 import tensorflow as tf
 
 from AmoebaPlayGround import Amoeba
-from AmoebaPlayGround.Logger import Logger
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.NetworkModels import ResNetLike
-from AmoebaPlayGround.Puzzles import PuzzleEvaluator
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.NetworkModels import ResNetLike
+from AmoebaPlayGround.Training.Logger import Logger
+from AmoebaPlayGround.Training.Puzzles import PuzzleEvaluator
 
 Amoeba.map_size = (15, 15)
 

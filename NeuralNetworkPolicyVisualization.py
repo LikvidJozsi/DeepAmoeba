@@ -1,8 +1,8 @@
 import numpy as np
 
 import AmoebaPlayGround.Amoeba as Amoeba
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.AmoebaView import GraphicalView
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
 
 Amoeba.map_size = (15, 15)
 

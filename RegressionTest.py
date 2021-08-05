@@ -1,8 +1,8 @@
 from AmoebaPlayGround import Amoeba
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import Player
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5

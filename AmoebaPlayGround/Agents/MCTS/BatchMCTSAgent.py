@@ -3,12 +3,12 @@ from typing import List
 
 import numpy as np
 
+from AmoebaPlayGround.Agents.MCTS.BaseMCTSTree import MCTSNode
+from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
+from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.Agents.NetworkModels import NetworkModel, ResNetLike
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.Logger import Statistics
-from AmoebaPlayGround.MCTS.BaseMCTSTree import MCTSNode
-from AmoebaPlayGround.MCTS.MCTSAgent import MCTSAgent
-from AmoebaPlayGround.MCTS.MCTSTree import MCTSTree
-from AmoebaPlayGround.NetworkModels import NetworkModel, ResNetLike
+from AmoebaPlayGround.Training.Logger import Statistics
 
 
 class PositionToSearch:

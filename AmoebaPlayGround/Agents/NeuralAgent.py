@@ -11,8 +11,8 @@ import tensorflow as tf
 from tensorflow.keras.models import Model
 
 import AmoebaPlayGround.Amoeba as Amoeba
-from AmoebaPlayGround.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.NetworkModels import NetworkModel
+from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
+from AmoebaPlayGround.Agents.NetworkModels import NetworkModel
 
 models_folder = 'Models/'
 

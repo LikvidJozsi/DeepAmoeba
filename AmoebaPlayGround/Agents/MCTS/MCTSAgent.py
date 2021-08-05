@@ -2,13 +2,13 @@ from typing import List, Dict
 
 import numpy as np
 
+from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
+from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
+from AmoebaPlayGround.Agents.NeuralAgent import NetworkModel, NeuralAgent
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard
-from AmoebaPlayGround.Logger import Statistics
-from AmoebaPlayGround.MCTS.DictMCTSTree import MCTSNode
-from AmoebaPlayGround.NetworkModels import PolicyValueNetwork
-from AmoebaPlayGround.NeuralAgent import NetworkModel, NeuralAgent
-from AmoebaPlayGround.TrainingSampleGenerator import TrainingSampleCollection
+from AmoebaPlayGround.Training.Logger import Statistics
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 
 class MCTSAgent(NeuralAgent):

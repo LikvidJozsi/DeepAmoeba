@@ -5,7 +5,7 @@ import numpy as np
 
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
-from AmoebaPlayGround.Logger import Statistics
+from AmoebaPlayGround.Training.Logger import Statistics
 
 
 class AmoebaAgent:

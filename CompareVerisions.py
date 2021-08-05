@@ -1,6 +1,6 @@
 import AmoebaPlayGround.Amoeba as Amoeba
-from AmoebaPlayGround.Evaluator import EloEvaluator
-from AmoebaPlayGround.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 
 Amoeba.map_size = (15, 15)
 evaluator = EloEvaluator()

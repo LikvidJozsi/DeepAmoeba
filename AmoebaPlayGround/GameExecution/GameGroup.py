@@ -1,10 +1,10 @@
 import time
 
 from AmoebaPlayGround.Amoeba import AmoebaGame, Player
-from AmoebaPlayGround.Logger import Statistics
-from AmoebaPlayGround.MoveSelector import MaximalMoveSelector
-from AmoebaPlayGround.ProgressPrinter import BaseProgressPrinter
-from AmoebaPlayGround.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, TrainingSampleCollection
+from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter
+from AmoebaPlayGround.Training.Logger import Statistics
+from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, TrainingSampleCollection
 
 
 class GameGroup:

@@ -1,9 +1,9 @@
 import collections
 import math
 
-from AmoebaPlayGround.AmoebaAgent import AmoebaAgent, RandomAgent
-from AmoebaPlayGround.HandWrittenAgent import HandWrittenAgent
-from AmoebaPlayGround.Puzzles import PuzzleEvaluator
+from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent, RandomAgent
+from AmoebaPlayGround.Agents.HandWrittenAgent import HandWrittenAgent
+from AmoebaPlayGround.Training.Puzzles import PuzzleEvaluator
 
 ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluation_match_count')
 fix_reference_agents = [ReferenceAgent(name='random_agent', instance=RandomAgent(),
