@@ -33,9 +33,16 @@ class BatchMCTSAgent(MCTSAgent):
         self.statistics = Statistics()
         self.search_trees = dict()
         self.tree_type = tree_type
+        self.config = {"model_name": model_name, "load_latest_model": load_latest_model, "model_type": model_type,
+                       "search_count": search_count, "exploration_rate": exploration_rate, "batch_size": batch_size,
+                       "training_epochs": training_epochs, "dirichlet_ratio": dirichlet_ratio, "map_size": map_size,
+                       "tree_type": tree_type}
 
     def reset_statistics(self):
         self.statistics = Statistics()
+
+    def get_config(self):
+        return self.config
 
     def get_copy(self):
         new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
@@ -144,12 +151,13 @@ class BatchMCTSAgent(MCTSAgent):
                 path = []
                 current_node = position.search_node
                 current_player = player
-            if current_node.is_unvisited() and not current_node.pending_policy_calculation:
-                current_node.pending_policy_calculation = True
-                position.searches_remaining -= 1
-                return path, current_node, current_player
-            elif current_node.is_unvisited():
-                return None, None, None
+            if current_node.is_unvisited():
+                if current_node.pending_policy_calculation:
+                    return None, None, None
+                else:
+                    current_node.pending_policy_calculation = True
+                    position.searches_remaining -= 1
+                    return path, current_node, current_player
 
             chosen_move, next_node = self.choose_move(current_node, position.search_tree, current_player)
             if chosen_move is None:

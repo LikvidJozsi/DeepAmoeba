@@ -6,7 +6,6 @@ from ray.util import ActorPool
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import PlaceholderAgent
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 from AmoebaPlayGround.GameExecution.MoveSelector import DistributionMoveSelector
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
@@ -105,9 +104,8 @@ class ParallelGameExecutor(GameExecutor):
 
         for i in range(worker_count):
             worker = GameExecutorWorker.remote(learning_agent.get_weights(), reference_agent.get_weights(),
-                                               learning_agent.map_size, i, self.printer_actor,
-                                               learning_agent.search_count, learning_agent.batch_size,
-                                               learning_agent.model_type)
+                                               learning_agent.map_size, i, learning_agent.get_config(),
+                                               self.printer_actor)
             learning_agent.add_synchronized_copy(worker.set_learning_agent_weights)
             reference_agent.add_synchronized_copy(worker.set_reference_agent_weights)
             workers.append(worker)
@@ -150,14 +148,12 @@ class ParallelGameExecutor(GameExecutor):
 
 @ray.remote
 class GameExecutorWorker:
-    def __init__(self, learning_agent_weights, reference_agent_weights, map_size, id,
-                 progress_printer_actor=None, search_count=1000, batch_size=200, model_type=PolicyValueNetwork()):
+    def __init__(self, learning_agent_weights, reference_agent_weights, map_size, id, agent_config,
+                 progress_printer_actor):
         Amoeba.map_size = map_size
-        self.learning_agent = BatchMCTSAgent(search_count=search_count, load_latest_model=False, batch_size=batch_size,
-                                             map_size=map_size, model_type=model_type)
+        self.learning_agent = BatchMCTSAgent(**agent_config)
         self.learning_agent.set_weights(learning_agent_weights)
-        self.reference_agent = BatchMCTSAgent(search_count=search_count, load_latest_model=False, batch_size=batch_size,
-                                              map_size=map_size, model_type=model_type)
+        self.reference_agent = BatchMCTSAgent(**agent_config)
         self.reference_agent.set_weights(reference_agent_weights)
         self.id = id
         self.progress_printer = ParallelProgressPrinter(progress_printer_actor, self.id)
