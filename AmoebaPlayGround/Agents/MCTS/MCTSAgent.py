@@ -5,9 +5,7 @@ import numpy as np
 from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
 from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.Agents.NeuralAgent import NetworkModel, NeuralAgent
-from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import AmoebaBoard
-from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 
@@ -31,13 +29,6 @@ class MCTSAgent(NeuralAgent):
         new_instance.set_weights(self.get_weights())
         return new_instance
 
-    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
-        search_nodes = self.get_root_nodes(None, games, evaluation)
-        for i in range(self.search_count):
-            for node in search_nodes:
-                self.run_search(node, player, set())
-        return self.get_move_probabilities_from_nodes(search_nodes, player), Statistics()
-
     def get_root_nodes(self, search_trees, games, evaluation):
         nodes = []
         if evaluation:
@@ -59,34 +50,6 @@ class MCTSAgent(NeuralAgent):
             action_probabilities.append(probabilities)
         return action_probabilities
 
-    def get_probability_distribution(self, search_node, player):
-        game_board = search_node.board_state.cells
-        formatted_input = self.format_input([game_board], [player])
-        output_2d, value = self.model.predict(formatted_input, batch_size=1)
-        output_2d = output_2d.reshape(game_board.shape)
-        output_2d = output_2d * np.logical_not(search_node.invalid_moves)
-        if np.sum(output_2d) == 0:
-            print("all zero output")
-            output_2d += np.logical_not(search_node.invalid_moves)
-        return output_2d / np.sum(output_2d), value
-
-    def run_search(self, search_node, player, path):
-        # the game ended on this this node
-        if search_node.game_has_ended:
-            # the reward for the previous player is the opposite of the reward for the next player
-            return -search_node.reward
-
-        if search_node.is_unvisited():
-            policy, value = self.get_probability_distribution(search_node, player)
-            search_node.set_policy(policy)
-            return -value
-
-        # choose the move having the biggest upper confidence bound
-        chosen_move, next_node = self.choose_move(search_node, player)
-        search_node.move_forward_selected(chosen_move)
-        v = self.run_search(next_node, player.get_other_player(), path)
-        search_node.update_expected_value_for_move(chosen_move, v)
-        return -v
 
     def choose_move(self, search_node: MCTSNode, search_tree, player):
         average_expected_reward = np.where(search_node.backward_visited_counts == 0, 0,

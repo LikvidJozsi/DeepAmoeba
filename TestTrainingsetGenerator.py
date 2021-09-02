@@ -2,14 +2,14 @@ import pickle
 
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
-from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
+from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import DictMCTSTree
 from AmoebaPlayGround.GameExecution.GameParallelizer import SingleThreadGameExecutor
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 Amoeba.map_size = (15, 15)
 
 neural_agent = BatchMCTSAgent(search_count=500, load_latest_model=False, batch_size=200, map_size=Amoeba.map_size,
-                              tree_type=MCTSTree)
+                              tree_type=DictMCTSTree)
 
 # game_executor = ParallelGameExecutor(neural_agent, neural_agent, 8)
 game_executor = SingleThreadGameExecutor()
