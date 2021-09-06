@@ -7,15 +7,15 @@ from AmoebaPlayGround.GameBoard import AmoebaBoard, EMPTY_SYMBOL
 class MCTSNode:
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, **kwargs):
         self.board_state: AmoebaBoard = board_state
-        self.sum_expected_move_rewards: np.ndarray[np.float32] = np.zeros(board_state.get_shape(), dtype=np.float32)
-        self.forward_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
-        self.backward_visited_counts: np.ndarray[np.uint16] = np.zeros(board_state.get_shape(), dtype=np.uint16)
+        map_size = board_state.get_shape()
+        self.sum_expected_move_rewards: np.ndarray[np.float32] = np.zeros(map_size, dtype=np.float32)
+        self.forward_visited_counts: np.ndarray[np.uint16] = np.zeros(map_size, dtype=np.uint16)
+        self.backward_visited_counts: np.ndarray[np.uint16] = np.zeros(map_size, dtype=np.uint16)
         self.invalid_moves = board_state.cells != EMPTY_SYMBOL
-        self.invalid_move_count = np.sum(self.invalid_moves)
         self.visited_count = 0
         self.neural_network_policy = None
         self.game_has_ended = has_game_ended
-        self.reward = None
+        self.reward = 0
         self.pending_policy_calculation = False
 
     def set_game_ended(self, move):
@@ -29,6 +29,12 @@ class MCTSNode:
             # reward for draw is 0, but it is subject to change
             self.game_has_ended = True
             self.reward = 0
+
+    def policy_calculation_started(self):
+        self.pending_policy_calculation = True
+
+    def policy_calculation_ended(self):
+        self.pending_policy_calculation = False
 
     def set_policy(self, policy):
         self.neural_network_policy = policy

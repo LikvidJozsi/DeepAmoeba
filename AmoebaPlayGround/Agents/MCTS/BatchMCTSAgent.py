@@ -4,8 +4,8 @@ from typing import List
 import numpy as np
 
 from AmoebaPlayGround.Agents.MCTS.BaseMCTSTree import MCTSNode
+from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import DictMCTSTree
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
-from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.NetworkModels import NetworkModel, ResNetLike
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Training.Logger import Statistics
@@ -26,7 +26,7 @@ class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
                  batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=MCTSTree):
+                 tree_type=DictMCTSTree):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size)
         self.batch_size = batch_size
@@ -61,7 +61,7 @@ class BatchMCTSAgent(MCTSAgent):
             paths, leaf_nodes, last_players = self.run_selection(positions_to_search, player)
             if len(leaf_nodes) > 0:
                 policies, values = self.run_simulation(leaf_nodes, last_players)
-                self.set_policies(leaf_nodes, policies)
+                self.set_policies(leaf_nodes, policies, paths)
                 self.run_back_propagation(paths, values)
             positions_to_search = self.move_over_fully_searched_games(positions_to_search, finished_positions)
 
@@ -113,10 +113,10 @@ class BatchMCTSAgent(MCTSAgent):
                 corrected_values.append(value)
         return corrected_values
 
-    def set_policies(self, nodes, policies):
+    def set_policies(self, nodes, policies, paths):
         for node, policy in zip(nodes, policies):
             node.set_policy(policy)
-            node.pending_policy_calculation = False
+            node.policy_calculation_ended()
 
     def run_selection(self, positions_to_search, player):
         paths = []
@@ -140,6 +140,10 @@ class BatchMCTSAgent(MCTSAgent):
 
     def run_selection_for_node(self, position: PositionToSearch, player):
         current_node: MCTSNode = position.search_node
+
+        if current_node.pending_policy_calculation:
+            return None, None, None
+
         current_player = player
         path = []
         while True:
@@ -152,14 +156,11 @@ class BatchMCTSAgent(MCTSAgent):
                 current_node = position.search_node
                 current_player = player
             if current_node.is_unvisited():
-                if current_node.pending_policy_calculation:
-                    return None, None, None
-                else:
-                    current_node.pending_policy_calculation = True
-                    position.searches_remaining -= 1
-                    return path, current_node, current_player
+                self.node_selected(current_node, path)
+                position.searches_remaining -= 1
+                return path, current_node, current_player
 
-            chosen_move, next_node = self.choose_move(current_node, position.search_tree, current_player)
+            chosen_move, next_node = self.choose_move_vectorized(current_node, position.search_tree, current_player)
             if chosen_move is None:
                 return None, None, None
             path.append((current_node, chosen_move))
@@ -167,6 +168,9 @@ class BatchMCTSAgent(MCTSAgent):
 
             current_node = next_node
             current_player = current_player.get_other_player()
+
+    def node_selected(self, selected_node, path):
+        selected_node.policy_calculation_started()
 
     def run_simulation(self, leaf_nodes: List[MCTSNode], players):
         board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))

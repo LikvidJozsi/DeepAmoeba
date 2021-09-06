@@ -1,6 +1,7 @@
 from typing import List, Dict
 
 import numpy as np
+from numba import njit
 
 from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
 from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
@@ -50,8 +51,18 @@ class MCTSAgent(NeuralAgent):
             action_probabilities.append(probabilities)
         return action_probabilities
 
+    def choose_move_vectorized(self, search_node: MCTSNode, search_tree, player):
+        best_move = get_best_ucb_node(search_node.backward_visited_counts, search_node.sum_expected_move_rewards,
+                                      search_node.neural_network_policy, search_node.forward_visited_counts,
+                                      search_node.invalid_moves, self.exploration_rate, search_node.visited_count,
+                                      search_node.board_state.get_shape())
+        if best_move is None:
+            return None, None
 
-    def choose_move(self, search_node: MCTSNode, search_tree, player):
+        chosen_move_node = search_tree.get_the_node_of_move(search_node, best_move, player)
+        return best_move, chosen_move_node
+
+    def choose_move_non_vectorized(self, search_node: MCTSNode, search_tree, player):
         average_expected_reward = np.where(search_node.backward_visited_counts == 0, 0,
                                            search_node.sum_expected_move_rewards / search_node.backward_visited_counts)
         upper_confidence_bounds = average_expected_reward + self.exploration_rate * search_node.neural_network_policy * \
@@ -98,3 +109,21 @@ class MCTSAgent(NeuralAgent):
 
     def get_name(self):
         return 'MCTSAgent'
+
+
+@njit(fastmath=True)
+def get_best_ucb_node(backward_visited_counts, sum_expected_move_rewards, neural_network_policy, forward_visited_counts,
+                      invalid_moves, exploration_rate, visited_count, board_shape):
+    average_expected_reward = np.where(backward_visited_counts == 0, 0,
+                                       sum_expected_move_rewards / backward_visited_counts)
+    upper_confidence_bounds = average_expected_reward + exploration_rate * neural_network_policy * \
+                              np.sqrt(visited_count + 1e-8) / (1 + forward_visited_counts)
+
+    valid_upper_confidence_bounds = np.where(invalid_moves, -np.inf, upper_confidence_bounds)
+    best_move = np.argmax(valid_upper_confidence_bounds)
+    index_1 = best_move // board_shape[0]
+    index_2 = best_move - index_1 * board_shape[0]
+    best_move = (index_1, index_2)
+    if valid_upper_confidence_bounds[best_move] == -np.inf:
+        return None
+    return best_move

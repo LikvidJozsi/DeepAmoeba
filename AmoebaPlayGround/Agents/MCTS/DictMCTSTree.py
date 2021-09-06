@@ -33,15 +33,41 @@ class BasicDictMCTSTree(BaseMCTSTree):
 
 
 class DictMCTSNode(MCTSNode):
-    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1):
-        super().__init__(board_state, has_game_ended)
+    def __init__(self, board_state: AmoebaBoard, has_game_ended=False, parent=None, move_from_parent=None, turn=1,
+                 **kwargs):
+        super().__init__(board_state=board_state, has_game_ended=has_game_ended, **kwargs)
         self.turn = turn
+        self.parents = dict()
+        if parent is not None:
+            self.parents[parent] = move_from_parent
+
+    def add_parent(self, parent, move):
+        self.parents[parent] = move
+
+    def policy_calculation_started(self):
+        for parent, move in self.parents.items():
+            parent.child_policy_calculation_started(move)
+
+    def policy_calculation_ended(self):
+        for parent, move in self.parents.items():
+            parent.child_policy_calculation_ended(move)
+
+    def child_policy_calculation_started(self, move_of_child):
+        self.invalid_moves[move_of_child] = True
+
+    def child_policy_calculation_ended(self, move_of_child):
+        self.invalid_moves[move_of_child] = False
 
 
-class DictMCTSRootNode(MCTSRootNode):
+class DictMCTSRootNode(DictMCTSNode, MCTSRootNode):
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, turn=1, eps=0.25):
-        super().__init__(board_state, has_game_ended, eps)
-        self.turn = turn
+        super().__init__(board_state=board_state, has_game_ended=has_game_ended, eps=eps, turn=turn)
+
+    def policy_calculation_started(self):
+        self.pending_policy_calculation = True
+
+    def policy_calculation_ended(self):
+        self.pending_policy_calculation = False
 
 
 class DictMCTSTree(BaseMCTSTree):
@@ -52,20 +78,22 @@ class DictMCTSTree(BaseMCTSTree):
     def get_the_node_of_move(self, search_node, move, player):
         new_move_tree_level = search_node.turn + 1
         new_board_state = search_node.get_board_state_after_move(move, player)
-        node_of_new_board_state = self.get_search_node_of_board_state(new_board_state, new_move_tree_level, move)
+        node_of_new_board_state = self.get_search_node_of_board_state(new_board_state, new_move_tree_level, move,
+                                                                      search_node)
         return node_of_new_board_state
 
     def get_existing_search_node(self, board_state, turn) -> MCTSNode:
         tree_level = self.get_tree_level(turn)
         return tree_level.get(board_state)
 
-    def get_search_node_of_board_state(self, board_state, turn, move):
+    def get_search_node_of_board_state(self, board_state, turn, move, parent_node):
         tree_level = self.get_tree_level(turn)
         search_node = tree_level.get(board_state)
         if search_node is not None:
+            search_node.add_parent(parent_node, move)
             return search_node
         else:
-            new_node = DictMCTSNode(board_state, turn=turn)
+            new_node = DictMCTSNode(board_state, turn=turn, parent=parent_node, move_from_parent=move)
             new_node.set_game_ended(move)
             tree_level[board_state] = new_node
             return new_node
