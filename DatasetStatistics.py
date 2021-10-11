@@ -29,7 +29,7 @@ def plot_heatmap(probs):
         text = ax.text(x, y, value, fontsize=7,
                        ha="center", va="center", color="w")
 
-    ax.set_title("Harvest of local farmers (in tons/year)")
+    ax.set_title("Probability distribution")
     fig.tight_layout()
     fig.show()
 
@@ -41,14 +41,14 @@ def calculate_entropy(sample, plot_count, max_plot_count, index):
             continue
         ent -= i * math.log(i, 2)
 
-    if ent > 2 and ent < 3 and plot_count < max_plot_count:
+    '''if ent > 2 and ent < 3 and plot_count < max_plot_count:
         print(index)
         plot_heatmap(sample)
-        return ent, plot_count + 1
+        return ent, plot_count + 1'''
     return ent, plot_count
 
 
-with open("test_dataset.p", 'rb') as file:
+with open("evaluation_dataset.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1

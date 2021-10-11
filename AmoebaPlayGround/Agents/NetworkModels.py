@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 import numpy as np
-from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, Reshape, add
+from tensorflow.keras.layers import Input, Conv2D, Dense, Flatten, BatchNormalization, Activation, add
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers import Dropout, LeakyReLU
@@ -40,7 +40,6 @@ class PolicyValueNetwork(NetworkModel):
         dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(256, kernel_regularizer=l2(l2=self.reg))(flatten)))
         dense_2 = Dropout(self.dropout)(Activation('relu')(Dense(128, kernel_regularizer=l2(l2=self.reg))(dense_1)))
         policy = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=self.reg))(dense_1)
-        policy = Reshape(map_size)(policy)
         value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg))(dense_2)
 
         model = Model(inputs=input, outputs=[policy, value])
@@ -53,7 +52,7 @@ class PolicyValueNetwork(NetworkModel):
 
 
 class ResNetLike(NetworkModel):
-    def __init__(self, network_depth=8, reg=0.00001, training_epochs=12, batch_size=16):
+    def __init__(self, network_depth=8, reg=0.00001, training_epochs=6, batch_size=32):
         self.network_depth = network_depth
         self.reg = reg
         self.training_epochs = training_epochs
@@ -70,9 +69,9 @@ class ResNetLike(NetworkModel):
         value = self.get_value_head(current_network_end)
 
         model = Model(inputs=input, outputs=[policy, value])
-        optimizer = Adam(learning_rate=0.001)
+        optimizer = Adam(learning_rate=0.002)
         # optimizer = SGD(learning_rate=0.01)
-        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer)
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 5])
         return model
 
     def get_value_head(self, feature_extractor):
@@ -80,16 +79,17 @@ class ResNetLike(NetworkModel):
         flatten = Flatten()(dim_reducer_conv)
         dense_1 = Dense(64, kernel_regularizer=l2(l2=self.reg))(flatten)
         dense_1_act = Activation('relu')(dense_1)
-        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg))(dense_1_act)
+        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg),
+                      name="value")(dense_1_act)
         return value
 
     def get_policy_head(self, feature_extractor, map_size):
         conv_1 = self.conv_layer(feature_extractor, 64, (3, 3))
         dimension_reducer_conv = self.conv_layer(conv_1, 2, (1, 1))
         flatten = Flatten()(dimension_reducer_conv)
-        dense_1 = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=self.reg))(flatten)
-        policy = Reshape(map_size)(dense_1)
-        return policy
+        dense_1 = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=self.reg),
+                        name="policy")(flatten)
+        return dense_1
 
     def identity_block(self, input, filters):
         conv_1 = self.conv_layer(input, filters[0], (3, 3))

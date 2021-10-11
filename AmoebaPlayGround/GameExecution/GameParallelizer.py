@@ -42,7 +42,7 @@ class GameExecutor:
               format(count=game_count, agent_1=agent_1_name, agent_2=agent_2_name))
 
     def group_finished(self, average_turn_time):
-        print("\nBatch finished, avg_turn_time: {:.3f}\n".format(average_turn_time))
+        print("\nBatch finished, avg_turn_time: {:.5f}\n".format(average_turn_time))
 
 
 class SingleThreadGameExecutor(GameExecutor):

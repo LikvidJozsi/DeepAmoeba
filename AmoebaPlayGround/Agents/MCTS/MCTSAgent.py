@@ -53,7 +53,7 @@ class MCTSAgent(NeuralAgent):
 
     def choose_move_vectorized(self, search_node: MCTSNode, search_tree, player):
         best_move = get_best_ucb_node(search_node.backward_visited_counts, search_node.sum_expected_move_rewards,
-                                      search_node.neural_network_policy, search_node.forward_visited_counts,
+                                      search_node.get_policy(), search_node.forward_visited_counts,
                                       search_node.invalid_moves, self.exploration_rate, search_node.visited_count,
                                       search_node.board_state.get_shape())
         if best_move is None:
@@ -98,10 +98,12 @@ class MCTSAgent(NeuralAgent):
         print('number of training samples: ' + str(samples.get_length()))
         input = self.format_input(samples.board_states)
         output_policies = np.array(samples.move_probabilities)
+        output_policies = output_policies.reshape(output_policies.shape[0], -1)
         output_values = np.array(samples.rewards)
         if validation_dataset is not None:
             validation_input = self.format_input(validation_dataset.board_states)
             validation_output_policies = np.array(validation_dataset.move_probabilities)
+            validation_output_policies = validation_output_policies.reshape(validation_output_policies.shape[0], -1)
             validation_output_values = np.array(validation_dataset.rewards)
             validation_dataset = (validation_input, [validation_output_policies, validation_output_values])
         return self.model_type.train(self.model, input, [output_policies, output_values],

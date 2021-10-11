@@ -37,6 +37,11 @@ class TrainingSampleCollection:
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
         self.rewards.extend(training_sample_collection.rewards)
 
+    def add_sample(self, board_state, move_probability, reward):
+        self.board_states.append(board_state)
+        self.move_probabilities.append(move_probability)
+        self.rewards.append(reward)
+
     def print(self):
         for board_state, probabilities, reward in zip(self.board_states, self.move_probabilities, self.rewards):
             print(board_state)
@@ -58,7 +63,25 @@ class SymmetricTrainingSampleGenerator(PlaceholderTrainingSampleGenerator):
         self.move_probabilities = []
         self.players = []
 
+    def calculate_entropy(self, probabilites):
+        probabilites = np.maximum(probabilites.flatten(), 1e-8)
+        entropy = - probabilites.dot(np.log2(probabilites))
+        return entropy
+
     def add_move(self, board_state, probabilities, player):
+        entropy = self.calculate_entropy(probabilities)
+        if entropy < 6:  # TODO board size independent value
+            self.add_mirror_symmetries(board_state, probabilities, player)
+        # elif random.random() < 0.1: # there is a 10% chance to include it even if it doesnt meet criteria
+        #    self.add_mirror_symmetries(board_state, probabilities, player)
+
+    def add_mirror_symmetries(self, board_state, probabilities, player):
+        self.add_rotations(board_state, probabilities, player)
+        board_state = np.flip(board_state, 0)
+        probabilities = np.flip(probabilities, 0)
+        self.add_rotations(board_state, probabilities, player)
+
+    def add_rotations(self, board_state, probabilities, player):
         for i in range(4):
             self.board_states.append(board_state)
             self.move_probabilities.append(probabilities)

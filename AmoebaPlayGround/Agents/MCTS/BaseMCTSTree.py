@@ -58,15 +58,18 @@ class MCTSNode:
         self.sum_expected_move_rewards[move] += simulation_value
         self.backward_visited_counts[move] += 1
 
+    def get_policy(self):
+        return self.neural_network_policy
+
 
 class MCTSRootNode(MCTSNode):
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, eps=0.25, **kwargs):
         super().__init__(board_state=board_state, has_game_ended=has_game_ended, **kwargs)
         self.eps = eps
 
-    def set_policy(self, policy):
+    def get_policy(self):
         board_shape = self.board_state.get_shape()
-        self.neural_network_policy = policy * (1 - self.eps) + self.eps * np.random.dirichlet(
+        return self.neural_network_policy * (1 - self.eps) + self.eps * np.random.dirichlet(
             [0.03] * np.prod(board_shape)).reshape(board_shape)
 
 

@@ -24,7 +24,7 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
                  batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8),
                  tree_type=DictMCTSTree):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
@@ -174,11 +174,13 @@ class BatchMCTSAgent(MCTSAgent):
 
     def run_simulation(self, leaf_nodes: List[MCTSNode], players):
         board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))
+        board_size = board_states[0].shape
         input = self.format_input(board_states, players)
         invalid_moves = list(map(lambda node: node.invalid_moves, leaf_nodes))
         invalid_moves = np.array(invalid_moves)
 
         output_2d, value = self.model.predict(input, batch_size=self.batch_size)
+        output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
         valid_moves = np.logical_not(invalid_moves)
         output_2d = output_2d * valid_moves
         # handle all zero outputs
