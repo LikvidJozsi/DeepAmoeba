@@ -24,13 +24,13 @@ class NeuralAgent(AmoebaAgent, ABC):
     def __init__(self, model_type: NetworkModel, model_name=None, load_latest_model=False, map_size=(8, 8)):
         self.model_type = model_type
         self.copy_setter_methods: List = []
+        self.map_size = map_size
         if load_latest_model:
             latest_model_file = self.get_latest_model()
             print("\n\nLoading model contained in file: %s\n\n" % (latest_model_file))
             self.load_model(latest_model_file)
         else:
             if model_name is None:
-                self.map_size = map_size
                 self.model: Model = model_type.create_model(self.map_size)
             else:
                 self.load_model(self.get_model_file_path(model_name))
@@ -50,7 +50,6 @@ class NeuralAgent(AmoebaAgent, ABC):
 
     def load_model(self, file_path):
         self.model: Model = tf.keras.models.load_model(file_path)
-        self.map_size = tuple(self.model.get_layer(index=0).output_shape[1:3])
 
     def get_model_file_path(self, model_name):
         return os.path.join(models_folder, model_name + '.h5')

@@ -16,27 +16,39 @@ class PositionToSearch:
         self.search_node = search_node
         self.search_tree = search_tree
         self.searches_remaining = searches_remaining
+        self.parallel_searches = 0
         self.id = id
+
+    def selected_into_batch(self):
+        self.searches_remaining -= 1
+        self.parallel_searches += 1
+
+    def search_ended(self):
+        self.searches_remaining -= 1
 
     def finished_search(self):
         return self.searches_remaining < 1
+
+    def new_batch_started(self):
+        self.parallel_searches = 0
 
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
                  model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
                  batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=DictMCTSTree):
+                 tree_type=DictMCTSTree, max_intra_game_parallelism=8):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size)
         self.batch_size = batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
         self.tree_type = tree_type
+        self.max_intra_game_parallelism = max_intra_game_parallelism
         self.config = {"model_name": model_name, "load_latest_model": load_latest_model, "model_type": model_type,
                        "search_count": search_count, "exploration_rate": exploration_rate, "batch_size": batch_size,
                        "training_epochs": training_epochs, "dirichlet_ratio": dirichlet_ratio, "map_size": map_size,
-                       "tree_type": tree_type}
+                       "tree_type": tree_type, "max_intra_game_parallelism": max_intra_game_parallelism}
 
     def reset_statistics(self):
         self.statistics = Statistics()
@@ -48,7 +60,8 @@ class BatchMCTSAgent(MCTSAgent):
         new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
                                       exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
                                       dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type,
-                                      batch_size=self.batch_size, map_size=self.map_size)
+                                      batch_size=self.batch_size, map_size=self.map_size,
+                                      max_intra_game_parallelism=self.max_intra_game_parallelism)
         new_instance.set_weights(self.get_weights())
         return new_instance
 
@@ -91,6 +104,7 @@ class BatchMCTSAgent(MCTSAgent):
                 finished_positions[position_to_search.id] = position_to_search
             else:
                 remaining_postions_to_search.append(position_to_search)
+                position_to_search.new_batch_started()
         return remaining_postions_to_search
 
     def get_positions_to_search(self, search_trees, games, evaluation):
@@ -141,7 +155,7 @@ class BatchMCTSAgent(MCTSAgent):
     def run_selection_for_node(self, position: PositionToSearch, player):
         current_node: MCTSNode = position.search_node
 
-        if current_node.pending_policy_calculation:
+        if position.parallel_searches > self.max_intra_game_parallelism or current_node.pending_policy_calculation:
             return None, None, None
 
         current_player = player
@@ -149,7 +163,7 @@ class BatchMCTSAgent(MCTSAgent):
         while True:
             if current_node.has_game_ended():
                 self.run_back_propagation([path], [current_node.reward])
-                position.searches_remaining -= 1
+                position.search_ended()
                 if 0 >= position.searches_remaining:
                     return None, None, None
                 path = []
@@ -157,7 +171,7 @@ class BatchMCTSAgent(MCTSAgent):
                 current_player = player
             if current_node.is_unvisited():
                 self.node_selected(current_node, path)
-                position.searches_remaining -= 1
+                position.selected_into_batch()
                 return path, current_node, current_player
 
             chosen_move, next_node = self.choose_move_vectorized(current_node, position.search_tree, current_player)
