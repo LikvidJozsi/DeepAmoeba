@@ -1,6 +1,6 @@
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
-from AmoebaPlayGround.Agents.NetworkModels import NetworkModel, ResNetLike
+from AmoebaPlayGround.Agents.TensorflowModels import NetworkModel, ResNetLike
 
 
 class TreeMCTSAgent(BatchMCTSAgent):

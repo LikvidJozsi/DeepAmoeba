@@ -6,7 +6,7 @@ import numpy as np
 from AmoebaPlayGround.Agents.MCTS.BaseMCTSTree import MCTSNode
 from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import DictMCTSTree
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
-from AmoebaPlayGround.Agents.NetworkModels import NetworkModel, ResNetLike
+from AmoebaPlayGround.Agents.TensorflowModels import NetworkModel, ResNetLike
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Training.Logger import Statistics
 
@@ -35,9 +35,9 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
-                 batch_size=20, training_epochs=10, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=DictMCTSTree, max_intra_game_parallelism=8):
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=3.0,
+                 batch_size=20, training_epochs=4, dirichlet_ratio=0.25, map_size=(8, 8),
+                 tree_type=DictMCTSTree, max_intra_game_parallelism=16):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size)
         self.batch_size = batch_size

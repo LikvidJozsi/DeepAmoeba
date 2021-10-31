@@ -30,8 +30,8 @@ def filter_dataset(dataset):
 
 
 if __name__ == '__main__':
-    with open("large_dataset.p", 'rb') as train_file, open("evaluation_dataset.p", 'rb') as eval_file:
+    with open("Datasets/large_dataset.p", 'rb') as train_file, open("Datasets/evaluation_dataset.p", 'rb') as eval_file:
         dataset = pickle.load(train_file)
     filtered = filter_dataset(dataset)
-    with open("filtered_dataset.p", 'wb') as file:
+    with open("Datasets/filtered_dataset.p", 'wb') as file:
         pickle.dump(filtered, file)

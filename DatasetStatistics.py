@@ -3,6 +3,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
 from AmoebaPlayGround import Amoeba
 
@@ -48,12 +49,14 @@ def calculate_entropy(sample, plot_count, max_plot_count, index):
     return ent, plot_count
 
 
-with open("evaluation_dataset.p", 'rb') as file:
+with open("Datasets/training_test_dataset.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1
     entropies = []
+    progress_bar = tqdm(total=len(dataset.board_states))
     for index, sample in enumerate(dataset.move_probabilities):
+        progress_bar.update(1)
         entropy, plot_count = calculate_entropy(sample, plot_count, max_plot_count, index)
         entropies.append(entropy)
 

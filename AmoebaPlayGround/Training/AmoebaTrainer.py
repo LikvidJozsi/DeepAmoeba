@@ -1,3 +1,5 @@
+import pickle
+
 from AmoebaPlayGround.Agents import AmoebaAgent
 from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.Training.Evaluator import EloEvaluator
@@ -7,10 +9,12 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleColl
 
 class AmoebaTrainer:
     def __init__(self, learning_agent, teaching_agents, self_play=True, trainingset_size=20000, game_executor=None,
-                 worker_count=2):
+                 worker_count=2, training_sample_entropy_cutoff=6,
+                 entropy_cutoff_episode_count=2, resume_previous_training=False):
         self.learning_agent: AmoebaAgent = learning_agent
         self.learning_agent_with_old_state: AmoebaAgent = learning_agent.get_copy()
         self.teaching_agents = teaching_agents
+        self.training_sample_entropy_cutoff = training_sample_entropy_cutoff
 
         if game_executor is None:
             game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state, worker_count)
@@ -18,9 +22,24 @@ class AmoebaTrainer:
         self.evaluator = EloEvaluator(game_executor)
         self.game_executor = game_executor
         self.self_play = self_play
-        self.training_samples = TrainingSampleCollection(max_size=trainingset_size)
+
+        if resume_previous_training:
+            self.training_samples = self.load_latest_dataset()
+            self.entropy_cutoff_episodes_remaining = 0
+        else:
+            self.training_samples = TrainingSampleCollection(max_size=trainingset_size)
+            self.entropy_cutoff_episodes_remaining = entropy_cutoff_episode_count
         if self.self_play:
             self.teaching_agents.append(self.learning_agent)
+
+    def load_latest_dataset(self):
+        with open("Datasets/latest_dataset.p", "rb") as file:
+            dataset = pickle.load(file)
+            return dataset
+
+    def save_latest_dataset(self, dataset):
+        with open("Datasets/latest_dataset.p", "wb") as file:
+            pickle.dump(dataset, file)
 
     def train(self, batch_size=1, view=None, num_episodes=1, model_save_file="", logger=Logger()):
         self.batch_size = batch_size
@@ -38,6 +57,10 @@ class AmoebaTrainer:
                     self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
                 print('Average game length against %s: %f' % (
                     teaching_agent.get_name(), group_statistics.get_average_game_length()))
+                if self.entropy_cutoff_episodes_remaining > 0:
+                    training_samples_from_agent.create_rotational_variations(self.training_sample_entropy_cutoff)
+                else:
+                    training_samples_from_agent.create_rotational_variations()
                 self.training_samples.extend(training_samples_from_agent)
                 statistics.merge_statistics(group_statistics)
             self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)
@@ -53,3 +76,6 @@ class AmoebaTrainer:
             logger.new_episode()
             if model_save_file != "":
                 self.learning_agent.save(model_save_file)
+                self.save_latest_dataset(self.training_samples)
+
+            self.entropy_cutoff_episodes_remaining -= 1

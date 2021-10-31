@@ -67,10 +67,13 @@ class MCTSRootNode(MCTSNode):
         super().__init__(board_state=board_state, has_game_ended=has_game_ended, **kwargs)
         self.eps = eps
 
-    def get_policy(self):
+    def set_policy(self, policy):
         board_shape = self.board_state.get_shape()
-        return self.neural_network_policy * (1 - self.eps) + self.eps * np.random.dirichlet(
-            [0.03] * np.prod(board_shape)).reshape(board_shape)
+        self.neural_network_policy = policy * (1 - self.eps) + self.eps * np.random.dirichlet(
+            [0.06] * np.prod(board_shape)).reshape(board_shape)
+
+    def get_policy(self):
+        return self.neural_network_policy
 
 
 class BaseMCTSTree:

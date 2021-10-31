@@ -12,13 +12,13 @@ from tensorflow.keras.models import Model
 
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.Agents.NetworkModels import NetworkModel
+from AmoebaPlayGround.Agents.TensorflowModels import NetworkModel
 
 models_folder = 'Models/'
 
+tf.config.optimizer.set_jit(True)
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
-
 
 class NeuralAgent(AmoebaAgent, ABC):
     def __init__(self, model_type: NetworkModel, model_name=None, load_latest_model=False, map_size=(8, 8)):

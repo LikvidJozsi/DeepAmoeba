@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 
 from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
-from AmoebaPlayGround.Agents.NetworkModels import PolicyValueNetwork
 from AmoebaPlayGround.Agents.NeuralAgent import NetworkModel, NeuralAgent
+from AmoebaPlayGround.Agents.TensorflowModels import PolicyValueNetwork
 from AmoebaPlayGround.GameBoard import AmoebaBoard
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
