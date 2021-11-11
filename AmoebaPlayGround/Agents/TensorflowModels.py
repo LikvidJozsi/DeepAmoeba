@@ -52,7 +52,7 @@ class PolicyValueNetwork(NetworkModel):
 
 
 class ResNetLike(NetworkModel):
-    def __init__(self, network_depth=8, reg=0.0001, training_epochs=6, batch_size=64):
+    def __init__(self, network_depth=8, reg=0.00001, training_epochs=12, batch_size=128):
         self.network_depth = network_depth
         self.reg = reg
         self.training_epochs = training_epochs

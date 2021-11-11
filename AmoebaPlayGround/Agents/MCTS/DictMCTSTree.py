@@ -31,6 +31,9 @@ class BasicDictMCTSTree(BaseMCTSTree):
             root_node = MCTSRootNode(game.map.copy(), eps=eps)
         return root_node
 
+    def get_node_count(self):
+        return len(self.tree)
+
 
 class DictMCTSNode(MCTSNode):
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, parent=None, move_from_parent=None, turn=1,
@@ -121,3 +124,9 @@ class DictMCTSTree(BaseMCTSTree):
         progress = new_turn - self.current_turn
         self.current_turn = new_turn
         self.tree_levels = self.tree_levels[progress:]
+
+    def get_node_count(self):
+        sum_node_count = 0
+        for level in self.tree_levels:
+            sum_node_count += len(level)
+        return sum_node_count

@@ -86,3 +86,6 @@ class BaseMCTSTree:
 
     def get_root_node(self, game, eps):
         pass
+
+    def get_node_count(self):
+        pass

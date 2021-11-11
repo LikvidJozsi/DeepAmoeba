@@ -40,7 +40,7 @@ class MCTSAgent(NeuralAgent):
         for game, search_tree in zip(games, search_trees):
             root_node = search_tree.get_root_node(game, eps)
             nodes.append(root_node)
-
+            search_tree.set_turn(game.num_steps + 1)
         return nodes
 
     def get_move_probabilities_from_nodes(self, nodes, player):

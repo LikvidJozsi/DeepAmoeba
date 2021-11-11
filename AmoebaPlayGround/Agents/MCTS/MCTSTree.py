@@ -81,3 +81,6 @@ class MCTSTree(BaseMCTSTree):
 
     def set_turn(self, new_turn):
         pass
+
+    def get_node_count(self):
+        return 0

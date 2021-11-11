@@ -1,4 +1,5 @@
 import copy
+import random
 from typing import List
 
 import numpy as np
@@ -19,7 +20,7 @@ class Move:
 
 
 class AmoebaGame:
-    def __init__(self, view=None, board_state=None):
+    def __init__(self, view=None, board_state=None, play_first_move=True):
         global game_id_counter
         self.view = view
         if len(map_size) != 2:
@@ -29,14 +30,32 @@ class AmoebaGame:
         self.map = AmoebaBoard(size=map_size, cells=board_state)
         self.id = game_id_counter
         game_id_counter += 1
+        self.num_steps = 0
+        self.history = []
         if board_state is None:
             self.init_map()
-            self.previous_player = Player.O
-        self.history = []
+            if play_first_move:
+                self.place_first_piece()
+                self.previous_player = Player.X
+                self.num_steps = 1
+            else:
+                self.previous_player = Player.O
+
         self.winner = None
-        self.num_steps = 0
+
         if self.view is not None:
             self.view.display_game_state(self.map)
+
+    def place_first_piece(self, max_distance_from_center=5):
+        column_offset = random.randint(-max_distance_from_center, max_distance_from_center)
+        row_offset = random.randint(-max_distance_from_center, max_distance_from_center)
+
+        board_size = self.map.get_shape()
+        board_half_size = board_size[0] // 2
+        column = board_half_size + column_offset
+        row = board_half_size + row_offset
+        self.map.set((column, row), X_SYMBOL)
+        self.history.append((column, row))
 
     def play_game(self, x_agent, o_agent, hightlight_agent=None):
         agents = [x_agent, o_agent]
@@ -47,8 +66,9 @@ class AmoebaGame:
 
             if hightlight_agent is not None:
                 formatted_input = hightlight_agent.format_input([self.map.cells], [self.get_next_player()])
-                output_2d, value = hightlight_agent.model.predict(formatted_input, batch_size=1)
-                print(output_2d)
+                output_1d, value = hightlight_agent.model.predict(formatted_input, batch_size=1)
+                board_size = self.map.get_shape()
+                output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
                 color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)
                 self.view.display_background_color_intensities(color_intensities)
             action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player(), True)

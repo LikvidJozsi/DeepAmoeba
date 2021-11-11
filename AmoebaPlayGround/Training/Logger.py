@@ -10,6 +10,7 @@ class Statistics:
     def __init__(self):
         self.max_search_depth = 0
         self.aggregate_search_depth = 0
+        self.aggregate_search_tree_size = 0
         self.searches_done = 0
         self.aggregate_game_length = 0
         self.game_count = 0
@@ -29,6 +30,8 @@ class Statistics:
         logger.log("avg_search_depth", avg_search_depth)
         avg_game_length = self.aggregate_game_length / self.game_count if self.game_count > 0 else 0
         logger.log("avg_game_length", avg_game_length)
+        avg_node_count = self.aggregate_search_tree_size / self.game_count if self.game_count > 0 else 0
+        logger.log("avg_node_count", avg_node_count)
 
     def merge_statistics(self, other_statistics):
         self.max_search_depth = max(self.max_search_depth, other_statistics.max_search_depth)
@@ -38,6 +41,7 @@ class Statistics:
         self.game_count += other_statistics.game_count
         self.games_won_by_player_1 += other_statistics.games_won_by_player_1
         self.games_won_by_player_2 += other_statistics.games_won_by_player_2
+        self.aggregate_search_tree_size += other_statistics.aggregate_search_tree_size
         self.draw_games += other_statistics.draw_games
 
     def add_win_statistics(self, games_won_by_player_1, games_won_by_player_2, draw_games):
@@ -53,10 +57,17 @@ class Statistics:
             self.max_search_depth = max(self.max_search_depth, path_length)
         self.searches_done += new_searches
 
+    def add_tree_sizes(self, trees):
+        self.game_count = len(trees)
+        for tree in trees:
+            self.aggregate_search_tree_size += tree.get_node_count()
+
     def __str__(self):
         if self.searches_done > 0:
-            return "max_search_depth: {0}, avg_search_depth: {1:.2f}".format(self.max_search_depth,
-                                                                             self.aggregate_search_depth / self.searches_done)
+            return "max_search_depth: {0}, avg_search_depth: {1:.2f}, avg_tree_size: {2:.2f}".format(
+                self.max_search_depth,
+                self.aggregate_search_depth / self.searches_done,
+                self.aggregate_search_tree_size / self.game_count)
         else:
             return ""
 

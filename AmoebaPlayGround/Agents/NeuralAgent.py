@@ -62,6 +62,10 @@ class NeuralAgent(AmoebaAgent, ABC):
 
     def set_weights(self, weights):
         self.model.set_weights(weights)
+        self.distribute_weights()
+
+    def distribute_weights(self):
+        weights = self.get_weights()
         operations = []
         for copy_method in self.copy_setter_methods:
             operations.append(copy_method.remote(weights))

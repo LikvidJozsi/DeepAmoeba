@@ -61,8 +61,7 @@ class GameGroup:
             self.games = [game for game in self.games if not game in finished_games]
             turn_number += 1
             self.progress_printer.print_progress(len(finished_games) / number_of_games, turn_number,
-                                                 turn_length_per_game_sec,
-                                                 step_statistics)
+                                                 turn_length_per_game_sec, step_statistics)
 
         avg_time_per_turn_per_game = sum_turn_length_sec / turn_number
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)

@@ -35,9 +35,9 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=3.0,
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=4.0,
                  batch_size=20, training_epochs=4, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=DictMCTSTree, max_intra_game_parallelism=16):
+                 tree_type=DictMCTSTree, max_intra_game_parallelism=16, neural_network_evaluator=None):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size)
         self.batch_size = batch_size
@@ -78,6 +78,7 @@ class BatchMCTSAgent(MCTSAgent):
                 self.run_back_propagation(paths, values)
             positions_to_search = self.move_over_fully_searched_games(positions_to_search, finished_positions)
 
+        self.statistics.add_tree_sizes(search_trees)
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)),
                                                       player), self.statistics
 
@@ -88,7 +89,6 @@ class BatchMCTSAgent(MCTSAgent):
             stored_tree = self.search_trees.get(game.id)
             if stored_tree is not None:
                 updated_tree_dictionary[game.id] = stored_tree
-                stored_tree.set_turn(game.num_steps)
                 trees.append(stored_tree)
             else:
                 new_tree = self.tree_type(game.num_steps)

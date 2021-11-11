@@ -92,7 +92,7 @@ class ParallelProgressPrinterActor:
             progress = 1
             status = "done\n"
         block = int(round(barLength * progress))
-        text = "\r[{0}] {1:.1f}%, turn number: {2} , turn time: {3:.4f}, {4}, status: {5}".format(
+        text = "\r[{0}] {1:.1f}%, turn number: {2} , turn time: {3:.4f}, {4},  status: {5}".format(
             "#" * block + "-" * (barLength - block), progress * 100, turn, time, extra_search_data, status)
         sys.stdout.write(text)
         sys.stdout.flush()

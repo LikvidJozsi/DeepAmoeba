@@ -36,6 +36,7 @@ class EloEvaluator(Evaluator):
                                                             reference_agent=self.reference_agent)
         else:
             rating = 0
+        self.reference_agent_rating = rating
         logger.log("agent_rating", rating)
         print('Learning agent rating: %f' % rating)
         self.puzzle_evaluator.evaluate_agent(agent, logger)
