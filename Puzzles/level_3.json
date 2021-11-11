@@ -7,9 +7,20 @@
         0,
         0,
         0,
+        0,
         0
       ],
       [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
         0,
         1,
         0,
@@ -20,6 +31,7 @@
       [
         0,
         0,
+        0,
         1,
         0,
         0,
@@ -29,6 +41,7 @@
         0,
         0,
         0,
+        0,
         1,
         0,
         0
@@ -38,10 +51,12 @@
         0,
         0,
         0,
-        1,
+        0,
+        0,
         0
       ],
       [
+        0,
         0,
         0,
         0,
@@ -52,44 +67,85 @@
     ],
     "correct_moves": [
       [
-        0,
-        0
+        1,
+        1
       ],
       [
         5,
         5
       ]
     ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 180
+    "extra_prohibited_filler_places": [
+      [
+        0,
+        0
+      ],
+      [
+        6,
+        6
+      ]
+    ],
+    "symmetry_period": 180,
+    "value_expected": 1
   },
   {
     "board_state": [
       [
         0,
+        0,
         1,
         1,
         1,
-        1,
+        0,
         0
       ]
     ],
     "correct_moves": [
       [
         0,
-        0
+        1
       ],
       [
         0,
         5
       ]
     ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 180
+    "extra_prohibited_filler_places": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "symmetry_period": 180,
+    "value_expected": 1
   },
   {
     "board_state": [
       [
+        -1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
         1,
         0,
         0,
@@ -98,22 +154,10 @@
       ],
       [
         0,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
         0,
         0,
         1,
         0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
         0,
         0
       ],
@@ -121,8 +165,129 @@
         0,
         0,
         0,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "correct_moves": [
+      [
+        5,
+        5
+      ]
+    ],
+    "extra_prohibited_filler_places": [
+      [
+        6,
+        6
+      ],
+      [
+        1,
+        1
+      ]
+    ],
+    "symmetry_period": 360,
+    "value_expected": 1
+  },
+  {
+    "board_state": [
+      [
+        -1,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0
+      ]
+    ],
+    "correct_moves": [
+      [
+        0,
+        5
+      ]
+    ],
+    "extra_prohibited_filler_places": [
+      [
+        0,
+        6
+      ],
+      [
         0,
         1
+      ]
+    ],
+    "symmetry_period": 360,
+    "value_expected": 1
+  },
+  {
+    "board_state": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
       ]
     ],
     "correct_moves": [
@@ -131,17 +296,28 @@
         3
       ]
     ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 360
+    "extra_prohibited_filler_places": [
+      [
+        5,
+        5
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "symmetry_period": 360,
+    "value_expected": 1
   },
   {
     "board_state": [
       [
-        1,
+        0,
         1,
         1,
         0,
-        1
+        1,
+        0
       ]
     ],
     "correct_moves": [
@@ -150,153 +326,17 @@
         3
       ]
     ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 360
-  },
-  {
-    "board_state": [
-      [
-        1,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        1
-      ]
-    ],
-    "correct_moves": [
-      [
-        2,
-        2
-      ]
-    ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 180
-  },
-  {
-    "board_state": [
-      [
-        1,
-        1,
-        0,
-        1,
-        1
-      ]
-    ],
-    "correct_moves": [
-      [
-        0,
-        2
-      ]
-    ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 180
-  },
-  {
-    "board_state": [
-      [
-        -1,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        1,
-        0,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        1,
-        0,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        1,
-        0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        1,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
-    ],
-    "correct_moves": [
-      [
-        5,
-        5
-      ]
-    ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 360
-  },
-  {
-    "board_state": [
-      [
-        -1,
-        1,
-        1,
-        1,
-        1,
-        0
-      ]
-    ],
-    "correct_moves": [
+    "extra_prohibited_filler_places": [
       [
         0,
         5
+      ],
+      [
+        0,
+        0
       ]
     ],
-    "extra_prohibited_filler_places": [],
-    "symmetry_period": 360
+    "symmetry_period": 360,
+    "value_expected": 1
   }
 ]

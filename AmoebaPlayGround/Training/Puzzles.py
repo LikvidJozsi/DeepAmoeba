@@ -6,6 +6,7 @@ import numpy as np
 
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
+from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.GameBoard import Player
 from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
@@ -18,6 +19,7 @@ class Puzzle:
         self.solutions = json_representation["correct_moves"]
         self.extra_prohibited_filler_places = json_representation["extra_prohibited_filler_places"]
         self.symmetry_period = json_representation["symmetry_period"]
+        self.value_expected = json_representation["value_expected"]
         self.board_state_variations = []
         self.solution_variations = []
         self.generate_variations(variation_count_target)
@@ -97,44 +99,55 @@ class Puzzle:
 class PuzzleEvaluator:
     def __init__(self, variation_count_target):
         self.move_selector = MaximalMoveSelector()
-        with open("Puzzles/easy_puzzles.json", "r") as file:
-            self.easy_puzzles = self.load_puzzles(json.load(file), variation_count_target)
+        with open("Puzzles/level_1.json", "r") as file:
+            self.level_1 = self.load_puzzles(json.load(file), variation_count_target)
 
-        with open("Puzzles/medium_puzzles.json", "r") as file:
-            self.medium_puzzles = self.load_puzzles(json.load(file), variation_count_target)
+        with open("Puzzles/level_2.json", "r") as file:
+            self.level_2 = self.load_puzzles(json.load(file), variation_count_target)
 
-        with open("Puzzles/hard_puzzles.json", "r") as file:
-            self.hard_puzzles = self.load_puzzles(json.load(file), variation_count_target)
+        with open("Puzzles/level_3.json", "r") as file:
+            self.level_3 = self.load_puzzles(json.load(file), variation_count_target)
+
+        with open("Puzzles/level_4.json", "r") as file:
+            self.level_4 = self.load_puzzles(json.load(file), variation_count_target)
+
+        with open("Puzzles/level_5.json", "r") as file:
+            self.level_5 = self.load_puzzles(json.load(file), variation_count_target)
 
     def load_puzzles(self, json_representation, variation_count_target):
         return [Puzzle(json_repr, variation_count_target) for json_repr in json_representation]
 
     def evaluate_agent(self, agent: AmoebaAgent, logger=None):
-        self.evaluate_on_level(agent, logger, "easy", self.easy_puzzles)
-        self.evaluate_on_level(agent, logger, "medium", self.medium_puzzles)
-        # self.evaluate_on_level(agent, logger, "hard", self.hard_puzzles)
+        self.evaluate_on_level(agent, logger, "level_1", self.level_1)
+        self.evaluate_on_level(agent, logger, "level_2", self.level_2)
+        self.evaluate_on_level(agent, logger, "level_3", self.level_3)
+        self.evaluate_on_level(agent, logger, "level_4", self.level_4)
+        self.evaluate_on_level(agent, logger, "level_5", self.level_5)
 
     def evaluate_on_level(self, agent, logger, level_name, level_puzzles):
-        policy_score, policy_entropy, search_score, search_entropy = self.evaluate_on_puzzles(agent, level_puzzles)
+        policy_score, policy_entropy, search_score, search_entropy, \
+        value_error = self.evaluate_on_puzzles(agent, level_puzzles)
         logger.log(level_name + "_puzzle_policy_score", policy_score)
         logger.log(level_name + "_puzzle_policy_entropy", policy_entropy)
+        logger.log(level_name + "_puzzle_value_error", value_error)
         logger.log(level_name + "_puzzle_search_score", search_score)
         logger.log(level_name + "_puzzle_search_entropy", search_entropy)
         print(("{0} puzzle result: \n\tpolicy: score {1:.03f}, entropy {2:.03f}\n\tsearch: score {3:.03f}, " +
-               "entropy {4:.03f}").format(
-            level_name, policy_score, policy_entropy, search_score, search_entropy
+               "entropy {4:.03f}, value error: {5:.03f}").format(
+            level_name, policy_score, policy_entropy, search_score, search_entropy, value_error
         ))
 
     def evaluate_on_puzzles(self, agent: AmoebaAgent, puzzles):
         aggreage_search_correctness, aggregate_search_entropy = 0, 0
         aggregate_policy_correctness, aggregate_policy_entropy = 0, 0
-        default_search_count = agent.search_count
+        aggregate_value_error, value_error_counts = 0, 0
         for index, puzzle in enumerate(puzzles):
-            agent.search_count = 2
-            policy_correctness, policy_entropy = self.evaluate_puzzle(agent, puzzle)
+            policy_correctness, policy_entropy, value_error = self.evaluate_policy(agent, puzzle)
+            if value_error is not None:
+                aggregate_value_error += value_error
+                value_error_counts += 1
             aggregate_policy_correctness += policy_correctness
             aggregate_policy_entropy += policy_entropy
-            agent.search_count = default_search_count
             search_correctness, search_entropy = self.evaluate_puzzle(agent, puzzle)
             aggreage_search_correctness += search_correctness
             aggregate_search_entropy += search_entropy
@@ -145,23 +158,55 @@ class PuzzleEvaluator:
         average_policy_correctness = aggregate_policy_correctness / len(puzzles)
         average_policy_entropy = aggregate_policy_entropy / len(puzzles)
 
-        return average_policy_correctness, average_policy_entropy, average_search_correctness, average_search_entropy
+        if value_error_counts > 0:
+            average_value_error = aggregate_value_error / value_error_counts
+        else:
+            average_value_error = 0
+
+        return average_policy_correctness, average_policy_entropy, average_search_correctness, \
+               average_search_entropy, average_value_error
+
+    def evaluate_policy(self, agent: MCTSAgent, puzzle):
+        raw_boards = [board.map.cells for board in puzzle.board_state_variations]
+        formatted_input = agent.format_input(raw_boards)
+        output_1d, values = agent.model.predict(formatted_input, batch_size=len(raw_boards))
+        board_size = raw_boards[0].shape
+        output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
+        correct_moves = self.get_correct_move_count(output_2d, puzzle)
+
+        variation_count = len(output_2d)
+        correctness = correct_moves / variation_count
+        entropy = self.get_entropy(correctness)
+
+        if puzzle.value_expected is not None:
+            puzzle_error = np.sum(np.power(values - puzzle.value_expected, 2))
+        else:
+            puzzle_error = None
+        return correctness, entropy, puzzle_error
 
     def evaluate_puzzle(self, agent: AmoebaAgent, puzzle):
         probabilities, _ = agent.get_step(puzzle.board_state_variations, Player.X, True)
 
+        correct_moves = self.get_correct_move_count(probabilities, puzzle)
+        variation_count = len(probabilities)
+        correctness = correct_moves / variation_count
+        entropy = self.get_entropy(correctness)
+        return correctness, entropy
+
+    def get_correct_move_count(self, probabilities, puzzle):
         correct_moves = 0
         for probability_map, solution_variations in zip(probabilities, puzzle.solution_variations):
             chosen_move = self.move_selector.select_move(probability_map)
             if is_move_in_move_list(solution_variations, chosen_move):
                 correct_moves += 1
-        variation_count = len(probabilities)
-        correctness = correct_moves / variation_count
+        return correct_moves
+
+    def get_entropy(self, correctness):
         if correctness != 0 and correctness != 1:
             entropy = -correctness * math.log(correctness, 2) - (1 - correctness) * math.log(1 - correctness, 2)
         else:
             entropy = 0
-        return correctness, entropy
+        return entropy
 
 
 def is_move_in_move_list(list, move):
