@@ -96,6 +96,10 @@ class FileLogger(Logger):
         self.field_names.append(key)
         self.field_values.append(str(value))
 
+    def get_log_episode_count(self):
+        with open(self.log_file_path, "r") as log_file:
+            return len(log_file.readlines()) - 1
+
     def new_episode(self):
         with open(self.log_file_path, mode="a", newline='') as log_file:
             if len(self.headers) == 0:
