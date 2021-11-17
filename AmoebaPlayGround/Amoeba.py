@@ -71,6 +71,7 @@ class AmoebaGame:
                 output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
                 color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)
                 self.view.display_background_color_intensities(color_intensities)
+                self.view.set_additional_info(f"value: {value[0][0]}")
             action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player(), True)
             action = move_selector.select_move(action_probabilities[0])
             self.step(action)

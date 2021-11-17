@@ -100,13 +100,17 @@ class GraphicalView(AmoebaView, AmoebaAgent):
 
     def create_window(self):
         self.window = Tk()
-        self.window.title("Amoeba width:%d height:%d" % (self.board_size[1], self.board_size[0]))
+        self.title = "Amoeba width:%d height:%d" % (self.board_size[1], self.board_size[0])
+        self.window.title(self.title)
         self.window.geometry('500x500')
         self.window.configure(background='gray')
         call_delay_in_milliseconds = 100
         self.window.after(call_delay_in_milliseconds, self.check_for_board_update)
         self.game_board = self.create_game_board()
         self.window.mainloop()
+
+    def set_additional_info(self, additional_info: str):
+        self.window.title(self.title + " " + additional_info)
 
     def create_game_board(self):
         game_board = []

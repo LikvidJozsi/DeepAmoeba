@@ -179,7 +179,7 @@ class PuzzleEvaluator:
         entropy = self.get_entropy(correctness)
 
         if puzzle.value_expected is not None:
-            puzzle_error = np.sum(np.power(values - puzzle.value_expected, 2))
+            puzzle_error = np.sum(np.power(values - puzzle.value_expected, 2)) / variation_count
         else:
             puzzle_error = None
         return correctness, entropy, puzzle_error

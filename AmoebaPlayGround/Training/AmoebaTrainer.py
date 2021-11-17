@@ -8,13 +8,13 @@ from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 from AmoebaPlayGround.Training.Input import get_model_filename
 from AmoebaPlayGround.Training.Logger import Statistics, FileLogger
 from AmoebaPlayGround.Training.Logger import logs_folder
-from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGenerator
 
 
 class AmoebaTrainer:
-    def __init__(self, learning_agent, teaching_agents, self_play=True, trainingset_size=20000, game_executor=None,
+    def __init__(self, learning_agent, teaching_agents, self_play=True, game_executor=None,
                  worker_count=2, training_sample_entropy_cutoff_schedule=None, resume_previous_training=False,
-                 training_sample_turn_cutoff_schedule=None):
+                 training_sample_turn_cutoff_schedule=None, sample_episode_window_width=6):
         self.learning_agent: AmoebaAgent = learning_agent
         self.learning_agent_with_old_state: AmoebaAgent = learning_agent.get_copy()
         self.teaching_agents = teaching_agents
@@ -30,11 +30,11 @@ class AmoebaTrainer:
 
         if resume_previous_training:
             self.training_id = self.get_latest_training_id()
-            self.training_samples = self.load_latest_dataset()
+            self.training_dataset_generator = self.load_latest_dataset()
             self.logger = FileLogger(self.training_id)
             self.current_episode = self.logger.get_log_episode_count()
         else:
-            self.training_samples = TrainingSampleCollection(max_size=trainingset_size)
+            self.training_dataset_generator = TrainingDatasetGenerator(episode_window_width=sample_episode_window_width)
             self.training_id = get_model_filename()
             self.logger = FileLogger(self.training_id)
             self.current_episode = 0
@@ -93,16 +93,16 @@ class AmoebaTrainer:
                     _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
                         self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
 
-                    training_samples_from_agent.create_rotational_variations(training_sample_entropy_cutoff,
-                                                                             training_sample_turn_cutoff)
-                    self.training_samples.extend(training_samples_from_agent)
+                    training_samples_from_agent.filter_samples(training_sample_entropy_cutoff,
+                                                               training_sample_turn_cutoff)
+                    self.training_dataset_generator.add_episode(training_samples_from_agent)
                     statistics.merge_statistics(group_statistics)
                 print('Average game length against %s: %f' % (
                     teaching_agent.get_name(), statistics.get_average_game_length()))
             self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)
             statistics.log(self.logger)
             print('Training agent:')
-            train_history = self.learning_agent.train(self.training_samples)
+            train_history = self.learning_agent.train(self.training_dataset_generator)
             self.learning_agent.distribute_weights()
             last_loss = train_history.history['loss'][-1]
             self.logger.log("loss", last_loss)
@@ -112,5 +112,5 @@ class AmoebaTrainer:
 
             self.logger.new_episode()
             self.learning_agent.save(self.training_id)
-            self.save_latest_dataset(self.training_samples)
+            self.save_latest_dataset(self.training_dataset_generator)
             self.current_episode += 1

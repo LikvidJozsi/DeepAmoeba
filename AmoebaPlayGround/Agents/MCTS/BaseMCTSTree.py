@@ -54,9 +54,13 @@ class MCTSNode:
     def has_game_ended(self):
         return self.game_has_ended
 
-    def update_expected_value_for_move(self, move, simulation_value):
-        self.sum_expected_move_rewards[move] += simulation_value
-        self.backward_visited_counts[move] += 1
+    def add_virtual_loss(self, move, virtual_loss):
+        self.sum_expected_move_rewards[move] -= virtual_loss
+        self.backward_visited_counts[move] += virtual_loss
+
+    def update_expected_value_for_move(self, move, simulation_value, virtual_loss_to_remove):
+        self.sum_expected_move_rewards[move] += simulation_value + virtual_loss_to_remove
+        self.backward_visited_counts[move] += 1 - virtual_loss_to_remove
 
     def get_policy(self):
         return self.neural_network_policy

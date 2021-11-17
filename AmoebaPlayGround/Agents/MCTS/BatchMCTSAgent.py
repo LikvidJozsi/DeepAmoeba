@@ -35,20 +35,23 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=4.0,
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
                  batch_size=20, training_epochs=4, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=DictMCTSTree, max_intra_game_parallelism=16, neural_network_evaluator=None):
+                 tree_type=DictMCTSTree, max_intra_game_parallelism=16, neural_network_evaluator=None,
+                 virtual_loss=3, training_dataset_max_size=200000):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
-                         dirichlet_ratio, map_size)
+                         dirichlet_ratio, map_size, training_dataset_max_size)
         self.batch_size = batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
         self.tree_type = tree_type
+        self.virtual_loss = virtual_loss
         self.max_intra_game_parallelism = max_intra_game_parallelism
         self.config = {"model_name": model_name, "load_latest_model": load_latest_model, "model_type": model_type,
                        "search_count": search_count, "exploration_rate": exploration_rate, "batch_size": batch_size,
                        "training_epochs": training_epochs, "dirichlet_ratio": dirichlet_ratio, "map_size": map_size,
-                       "tree_type": tree_type, "max_intra_game_parallelism": max_intra_game_parallelism}
+                       "tree_type": tree_type, "max_intra_game_parallelism": max_intra_game_parallelism,
+                       "virtual_loss": virtual_loss, "training_dataset_max_size": training_dataset_max_size}
 
     def reset_statistics(self):
         self.statistics = Statistics()
@@ -61,7 +64,9 @@ class BatchMCTSAgent(MCTSAgent):
                                       exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
                                       dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type,
                                       batch_size=self.batch_size, map_size=self.map_size,
-                                      max_intra_game_parallelism=self.max_intra_game_parallelism)
+                                      max_intra_game_parallelism=self.max_intra_game_parallelism,
+                                      virtual_loss=self.virtual_loss,
+                                      training_dataset_max_size=self.training_dataset_max_size)
         new_instance.set_weights(self.get_weights())
         return new_instance
 
@@ -75,12 +80,13 @@ class BatchMCTSAgent(MCTSAgent):
             if len(leaf_nodes) > 0:
                 policies, values = self.run_simulation(leaf_nodes, last_players)
                 self.set_policies(leaf_nodes, policies, paths)
-                self.run_back_propagation(paths, values)
+                self.run_back_propagation(paths, values, self.virtual_loss)
             positions_to_search = self.move_over_fully_searched_games(positions_to_search, finished_positions)
 
         self.statistics.add_tree_sizes(search_trees)
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)),
                                                       player), self.statistics
+
 
     def get_search_trees_for_games(self, games):
         updated_tree_dictionary = dict()
@@ -185,6 +191,8 @@ class BatchMCTSAgent(MCTSAgent):
 
     def node_selected(self, selected_node, path):
         selected_node.policy_calculation_started()
+        for node, move in reversed(path):
+            node.add_virtual_loss(move, self.virtual_loss)
 
     def run_simulation(self, leaf_nodes: List[MCTSNode], players):
         board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))
@@ -207,13 +215,13 @@ class BatchMCTSAgent(MCTSAgent):
 
         return output_2d / output_sum.reshape((-1, 1, 1)), value
 
-    def run_back_propagation(self, paths, values):
+    def run_back_propagation(self, paths, values, virtual_loss_to_remove=0):
         # values are received from the perspective of the leaf node and paths does not contain them
         values = -np.array(values)
 
         for path, value in zip(paths, values):
             for node, move in reversed(path):
-                node.update_expected_value_for_move(move, value)
+                node.update_expected_value_for_move(move, value, virtual_loss_to_remove)
                 value = -value
         self.statistics.add_searches(paths)
 
