@@ -60,3 +60,12 @@ plt.plot(np.arange(len(df)), df['level_5_puzzle_search_score'], 'g', label="leve
 plt.title("hard puzzle performance")
 plt.legend()
 plt.show()
+
+plt.plot(np.arange(len(df)), df['avg_fraction_not_visited'], 'b', label="not_visited")
+plt.plot(np.arange(len(df)), df['avg_fraction_visited_once'], 'y', label="visited_once")
+plt.plot(np.arange(len(df)), df['avg_fraction_visited_twice'], 'r', label="visited_twice")
+plt.plot(np.arange(len(df)), df['avg_fraction_visited_at_least_10_times'], 'g', label="visited_at_least_10_times")
+plt.plot(np.arange(len(df)), df['fraction_won_by_player_1'], 'm', label="won_by_player_1")
+plt.title("self play_stats")
+plt.legend()
+plt.show()

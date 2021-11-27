@@ -3,19 +3,28 @@ import pickle
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.MCTS.TreeMCTSAgent import TreeMCTSAgent
 from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
+from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 Amoeba.map_size = (15, 15)
 
-neural_agent = TreeMCTSAgent(search_count=500, load_latest_model=True, batch_size=200, map_size=Amoeba.map_size)
+neural_agent = TreeMCTSAgent(search_count=800, load_latest_model=False, batch_size=1000, map_size=Amoeba.map_size,
+                             max_intra_game_parallelism=8)
 
-game_executor = ParallelGameExecutor(neural_agent, neural_agent, 10)
+game_executor = ParallelGameExecutor(neural_agent, neural_agent, 4)
 # game_executor = SingleThreadGameExecutor()
-combined_training_samples = TrainingSampleCollection()
-for i in range(1):
-    _, training_samples, _ = game_executor.play_games_between_agents(480, neural_agent, neural_agent, evaluation=False,
-                                                                     print_progress=True)
-    combined_training_samples.extend(training_samples)
 
-with open("Datasets/evaluation_dataset.p", 'wb') as file:
-    pickle.dump(combined_training_samples, file)
+sample_collection = TrainingSampleCollection()
+self_play_statistics = Statistics()
+for i in range(2):
+    _, training_samples, staticsitcs = game_executor.play_games_between_agents(720, neural_agent, neural_agent,
+                                                                               evaluation=False,
+                                                                               print_progress=True)
+    sample_collection.extend(training_samples)
+    self_play_statistics.merge_statistics(staticsitcs)
+
+with open("Datasets/quickstart_dataset.p", 'wb') as file:
+    pickle.dump(sample_collection, file)
+
+with open("Datasets/quickstart_dataset_statistics.p", 'wb') as file:
+    pickle.dump(self_play_statistics, file)

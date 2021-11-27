@@ -59,7 +59,7 @@ class Puzzle:
         self.solution_variations = filtered_solutions
 
     def get_translated_board_state(self, board_state, translation, map_size):
-        translated_board_state = np.zeros(map_size, dtype=np.uint8)
+        translated_board_state = np.zeros(map_size, dtype=np.int8)
         translated_board_state[translation[0]:(translation[0] + board_state.shape[0]),
         translation[1]:(translation[1] + board_state.shape[1])] = board_state
         return AmoebaGame(board_state=translated_board_state)
@@ -185,7 +185,7 @@ class PuzzleEvaluator:
         return correctness, entropy, puzzle_error
 
     def evaluate_puzzle(self, agent: AmoebaAgent, puzzle):
-        probabilities, _ = agent.get_step(puzzle.board_state_variations, Player.X, True)
+        probabilities, _ = agent.get_step(puzzle.board_state_variations, Player.X, False)
 
         correct_moves = self.get_correct_move_count(probabilities, puzzle)
         variation_count = len(probabilities)

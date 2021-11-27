@@ -24,7 +24,7 @@ class GameExecutor:
             combined_statistics.merge_statistics(statistics)
             combined_turn_length += avg_turn_length
             group_count += 1
-        combined_avg_turn_length = combined_turn_length / group_count
+        combined_avg_turn_length = combined_turn_length / group_count / group_count
         return combined_games, combined_training_samples, combined_statistics, combined_avg_turn_length
 
     def group_started(self, agent_1_name, agent_2_name, game_count):

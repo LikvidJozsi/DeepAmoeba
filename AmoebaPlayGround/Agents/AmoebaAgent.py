@@ -44,7 +44,7 @@ class PlaceholderAgent(AmoebaAgent):
 class ConsoleAgent(AmoebaAgent):
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
         game_boards = [game.map for game in games]
-        answers = np.zeros((len(game_boards), 2), dtype=np.uint8)
+        answers = np.zeros((len(game_boards), 2), dtype=np.int8)
         print('You are ' + str(player))
         print('Give position in row column format (zero indexing):')
         for index, game_board in enumerate(game_boards):

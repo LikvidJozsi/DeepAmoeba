@@ -96,4 +96,4 @@ class AmoebaBoard:
 
     def copy(self):
         copied_cells = self.cells.copy()
-        return AmoebaBoard(self.get_shape(),copied_cells)
+        return AmoebaBoard(self.get_shape(), copied_cells)

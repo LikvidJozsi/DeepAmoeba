@@ -37,12 +37,6 @@ class TreeMCTSRootNode(MCTSRootNode, TreeMCTSNode):
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, eps=0.25, children=None):
         super().__init__(board_state=board_state, has_game_ended=has_game_ended, eps=eps, children=children)
 
-    def policy_calculation_started(self):
-        self.pending_policy_calculation = True
-
-    def policy_calculation_ended(self):
-        self.pending_policy_calculation = False
-
 
 class MCTSTree(BaseMCTSTree):
     def __init__(self, current_turn=1):

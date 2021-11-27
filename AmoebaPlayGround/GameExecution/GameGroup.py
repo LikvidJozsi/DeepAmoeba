@@ -40,11 +40,11 @@ class GameGroup:
         while len(self.games) != 0:
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
-            time_before_step = time.time()
+            time_before_step = time.perf_counter()
             action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player(),
                                                                         self.evaluation)
             statistics.merge_statistics(step_statistics)
-            time_after_step = time.time()
+            time_after_step = time.perf_counter()
             for game, training_sample_generator, action_probability_map in zip(self.games,
                                                                                self.training_sample_generators,
                                                                                action_probabilities):
@@ -66,8 +66,8 @@ class GameGroup:
         avg_time_per_turn_per_game = sum_turn_length_sec / turn_number
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)
         statistics.game_count = len(finished_games)
-        games_player_1_won, games_player_2_won, draws = self.get_win_statistics(finished_games)
-        statistics.add_win_statistics(games_player_1_won, games_player_2_won, draws)
+        games_player_1_won, games_player_2_won, draws, games_x_won = self.get_win_statistics(finished_games)
+        statistics.add_win_statistics(games_player_1_won, games_player_2_won, draws, games_x_won)
         return finished_games, training_samples, statistics, avg_time_per_turn_per_game
 
     def get_win_statistics(self, games):
@@ -83,9 +83,9 @@ class GameGroup:
             else:
                 games_draw += 1
         if self.reversed_agent_order:
-            return games_player_2_won, games_player_1_won, games_draw
+            return games_player_2_won, games_player_1_won, games_draw, games_player_1_won
         else:
-            return games_player_1_won, games_player_2_won, games_draw
+            return games_player_1_won, games_player_2_won, games_draw, games_player_1_won
 
     def get_aggregate_game_length(self, games):
         sum_game_length = 0

@@ -48,14 +48,14 @@ class MCTSAgent(NeuralAgent):
     def get_move_probabilities_from_nodes(self, nodes, player):
         action_probabilities = []
         for node in nodes:
-            action_visited_counts = node.forward_visited_counts
+            action_visited_counts = node.move_visited_counts
             probabilities = action_visited_counts / np.sum(action_visited_counts)
             action_probabilities.append(probabilities)
         return action_probabilities
 
     def choose_move_vectorized(self, search_node: MCTSNode, search_tree, player):
-        best_move = get_best_ucb_node(search_node.backward_visited_counts, search_node.sum_expected_move_rewards,
-                                      search_node.get_policy(), search_node.forward_visited_counts,
+        best_move = get_best_ucb_node(search_node.sum_expected_move_rewards,
+                                      search_node.get_policy(), search_node.move_visited_counts,
                                       search_node.invalid_moves, self.exploration_rate, search_node.visited_count,
                                       search_node.board_state.get_shape())
         if best_move is None:
@@ -65,10 +65,9 @@ class MCTSAgent(NeuralAgent):
         return best_move, chosen_move_node
 
     def choose_move_non_vectorized(self, search_node: MCTSNode, search_tree, player):
-        average_expected_reward = np.where(search_node.backward_visited_counts == 0, 0,
-                                           search_node.sum_expected_move_rewards / search_node.backward_visited_counts)
+        average_expected_reward = search_node.sum_expected_move_rewards / np.maximum(1, search_node.move_visited_counts)
         upper_confidence_bounds = average_expected_reward + self.exploration_rate * search_node.neural_network_policy * \
-                                  np.sqrt(search_node.visited_count + 1e-8) / (1 + search_node.forward_visited_counts)
+                                  np.sqrt(search_node.visited_count + 1e-8) / (1 + search_node.move_visited_counts)
         upper_confidence_bounds[search_node.invalid_moves] = -np.inf
 
         ranked_moves = np.argsort(upper_confidence_bounds.flatten())
@@ -89,8 +88,8 @@ class MCTSAgent(NeuralAgent):
             own_symbols = np.array(1)
         own_symbols = own_symbols.reshape((-1, 1, 1))
         numeric_boards = np.array(game_boards)
-        own_pieces = np.array(numeric_boards == own_symbols, dtype='float')
-        opponent_pieces = np.array(numeric_boards == -own_symbols, dtype='float')
+        own_pieces = np.array(numeric_boards == own_symbols, dtype=np.float32)
+        opponent_pieces = np.array(numeric_boards == -own_symbols, dtype=np.float32)
         numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
         return numeric_representation
 
@@ -114,12 +113,11 @@ class MCTSAgent(NeuralAgent):
 
 
 @njit(fastmath=True)
-def get_best_ucb_node(backward_visited_counts, sum_expected_move_rewards, neural_network_policy, forward_visited_counts,
+def get_best_ucb_node(sum_expected_move_rewards, neural_network_policy, move_visited_counts,
                       invalid_moves, exploration_rate, visited_count, board_shape):
-    average_expected_reward = np.where(backward_visited_counts == 0, 0,
-                                       sum_expected_move_rewards / backward_visited_counts)
+    average_expected_reward = sum_expected_move_rewards / np.maximum(1, move_visited_counts)
     upper_confidence_bounds = average_expected_reward + exploration_rate * neural_network_policy * \
-                              np.sqrt(visited_count + 1e-8) / (1 + forward_visited_counts)
+                              np.sqrt(visited_count + 1e-8) / (1 + move_visited_counts)
 
     valid_upper_confidence_bounds = np.where(invalid_moves, -np.inf, upper_confidence_bounds)
     best_move = np.argmax(valid_upper_confidence_bounds)

@@ -1,4 +1,3 @@
-import copy
 from typing import List
 
 import numpy as np
@@ -35,7 +34,7 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=6.0,
                  batch_size=20, training_epochs=4, dirichlet_ratio=0.25, map_size=(8, 8),
                  tree_type=DictMCTSTree, max_intra_game_parallelism=16, neural_network_evaluator=None,
                  virtual_loss=3, training_dataset_max_size=200000):
@@ -83,7 +82,7 @@ class BatchMCTSAgent(MCTSAgent):
                 self.run_back_propagation(paths, values, self.virtual_loss)
             positions_to_search = self.move_over_fully_searched_games(positions_to_search, finished_positions)
 
-        self.statistics.add_tree_sizes(search_trees)
+        self.statistics.add_tree_statistics(finished_positions)
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)),
                                                       player), self.statistics
 
@@ -146,14 +145,16 @@ class BatchMCTSAgent(MCTSAgent):
         while len(paths) < self.batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
-                path, end_node, end_player = self.run_selection_for_node(position, player)
+                path, end_node, end_player, can_continue_search = self.run_selection_for_node(position, player)
                 if path is not None:
                     paths.append(path)
                     leaf_nodes.append(end_node)
                     last_players.append(end_player)
-                    remaining_positions_to_search.append(position)
                     if len(paths) >= self.batch_size:
                         break
+                if can_continue_search:
+                    remaining_positions_to_search.append(position)
+
             positions_to_search = remaining_positions_to_search
 
         return paths, leaf_nodes, last_players
@@ -161,38 +162,45 @@ class BatchMCTSAgent(MCTSAgent):
     def run_selection_for_node(self, position: PositionToSearch, player):
         current_node: MCTSNode = position.search_node
 
-        if position.parallel_searches > self.max_intra_game_parallelism or current_node.pending_policy_calculation:
-            return None, None, None
+        if position.parallel_searches > self.max_intra_game_parallelism:
+            return None, None, None, False
 
         current_player = player
         path = []
+
+        if current_node.is_unvisited():
+            return path, current_node, current_player, False
+
         while True:
             if current_node.has_game_ended():
-                self.run_back_propagation([path], [current_node.reward])
+                self.run_back_propagation([path], [current_node.reward], self.virtual_loss)
                 position.search_ended()
                 if 0 >= position.searches_remaining:
-                    return None, None, None
+                    return None, None, None, False
                 path = []
                 current_node = position.search_node
                 current_player = player
             if current_node.is_unvisited():
-                self.node_selected(current_node, path)
                 position.selected_into_batch()
-                return path, current_node, current_player
+                self.node_selected(current_node, path)
+                return path, current_node, current_player, True
 
             chosen_move, next_node = self.choose_move_vectorized(current_node, position.search_tree, current_player)
             if chosen_move is None:
-                return None, None, None
+                self.selection_cancelled(path)
+                return None, None, None, False
             path.append((current_node, chosen_move))
-            current_node.move_forward_selected(chosen_move)
+            current_node.node_selected(chosen_move, self.virtual_loss)
 
             current_node = next_node
             current_player = current_player.get_other_player()
 
-    def node_selected(self, selected_node, path):
-        selected_node.policy_calculation_started()
-        for node, move in reversed(path):
-            node.add_virtual_loss(move, self.virtual_loss)
+    def node_selected(self, node, path):
+        pass
+
+    def selection_cancelled(self, path):
+        for node, move in path:
+            node.selection_cancelled(move, self.virtual_loss)
 
     def run_simulation(self, leaf_nodes: List[MCTSNode], players):
         board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))
@@ -227,23 +235,3 @@ class BatchMCTSAgent(MCTSAgent):
 
     def get_name(self):
         return 'BatchMCTSAgent'
-
-    def get_search_batch(self, searches_remaining: dict):
-        # creating a batch is a best effort, we may not be able to do as many parallel searches as there are in the
-        # batch, so we only track the planned searches and get the true number after selection, hence the need for
-        # counting planned searches
-        planned_searches_remaining = copy.copy(list(searches_remaining.values()))
-        print(planned_searches_remaining)
-        # prioritize the least searched games(search_nodes)
-        search_nodes, planned_searches_remaining = (list(t) for t in zip(
-            *sorted(zip(list(searches_remaining.keys()), planned_searches_remaining), key=lambda x: x[1],
-                    reverse=True)))
-        print(planned_searches_remaining)
-        batch = []
-        while True:
-            for index in range(len(search_nodes)):
-                if planned_searches_remaining[index] > 0:
-                    batch.append(search_nodes[index])
-                    planned_searches_remaining[index] -= 1
-                if len(batch) == self.batch_size:
-                    return batch

@@ -47,11 +47,13 @@ class AmoebaGame:
             self.view.display_game_state(self.map)
 
     def place_first_piece(self, max_distance_from_center=5):
+        board_size = self.map.get_shape()
+        board_half_size = board_size[0] // 2
+        max_distance_from_center = min(max_distance_from_center, board_half_size - 1)
+
         column_offset = random.randint(-max_distance_from_center, max_distance_from_center)
         row_offset = random.randint(-max_distance_from_center, max_distance_from_center)
 
-        board_size = self.map.get_shape()
-        board_half_size = board_size[0] // 2
         column = board_half_size + column_offset
         row = board_half_size + row_offset
         self.map.set((column, row), X_SYMBOL)

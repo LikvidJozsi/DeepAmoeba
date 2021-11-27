@@ -74,12 +74,24 @@ class AmoebaTrainer:
         with open("Datasets/latest_dataset.p", "wb") as file:
             pickle.dump(dataset, file)
 
-    def train(self, batch_size=1, batches_per_episode=1, view=None, num_episodes=1):
+    def load_quickstart_dataset(self, training_sample_entropy_cutoff, training_sample_turn_cutoff):
+        with open("Datasets/quickstart_dataset_8x8.p", "rb") as file:
+            dataset = pickle.load(file)
+        with open("Datasets/quickstart_dataset_statistics_8x8.p", "rb") as file:
+            statistics = pickle.load(file)
+
+        dataset.filter_samples(training_sample_entropy_cutoff,
+                               training_sample_turn_cutoff)
+
+        return dataset, statistics
+
+    def train(self, batch_size=1, batches_per_episode=1, view=None, num_episodes=1, use_quickstart_dataset=True):
         self.batch_size = batch_size
         self.view = view
 
         if self.self_play:
             self.evaluator.set_reference_agent(self.learning_agent_with_old_state)
+
         while self.current_episode < num_episodes:
             self.logger.log("episode", self.current_episode)
             training_sample_turn_cutoff, training_sample_entropy_cutoff = self.recalculate_scheduled_parameters(
@@ -87,18 +99,24 @@ class AmoebaTrainer:
             statistics = Statistics()
             print(f'\nEpisode {self.current_episode}, training_sample_turn_cutoff:{training_sample_turn_cutoff}, '
                   f'training_sample_entropy_cutoff: {training_sample_entropy_cutoff}')
-            for teacher_index, teaching_agent in enumerate(self.teaching_agents):
-                # print('Playing games against ' + teaching_agent.get_name())
-                for game_batch_index in range(batches_per_episode):
-                    _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
-                        self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
+            if use_quickstart_dataset and self.current_episode == 0:
+                training_samples, group_statistics = self.load_quickstart_dataset(
+                    training_sample_entropy_cutoff, training_sample_turn_cutoff)
+                self.training_dataset_generator.add_episode(training_samples)
+                statistics.merge_statistics(group_statistics)
+            else:
+                for teacher_index, teaching_agent in enumerate(self.teaching_agents):
+                    # print('Playing games against ' + teaching_agent.get_name())
+                    for game_batch_index in range(batches_per_episode):
+                        _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
+                            self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
 
-                    training_samples_from_agent.filter_samples(training_sample_entropy_cutoff,
-                                                               training_sample_turn_cutoff)
-                    self.training_dataset_generator.add_episode(training_samples_from_agent)
-                    statistics.merge_statistics(group_statistics)
-                print('Average game length against %s: %f' % (
-                    teaching_agent.get_name(), statistics.get_average_game_length()))
+                        training_samples_from_agent.filter_samples(training_sample_entropy_cutoff,
+                                                                   training_sample_turn_cutoff)
+                        self.training_dataset_generator.add_episode(training_samples_from_agent)
+                        statistics.merge_statistics(group_statistics)
+                    print('Average game length against %s: %f' % (
+                        teaching_agent.get_name(), statistics.get_average_game_length()))
             self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)
             statistics.log(self.logger)
             print('Training agent:')

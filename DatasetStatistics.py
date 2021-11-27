@@ -49,7 +49,7 @@ def calculate_entropy(sample, plot_count, max_plot_count, index):
     return ent, plot_count
 
 
-with open("Datasets/training_test_dataset.p", 'rb') as file:
+with open("Datasets/quickstart_dataset.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1
