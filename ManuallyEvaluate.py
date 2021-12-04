@@ -5,7 +5,7 @@ from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.AmoebaView import GraphicalView
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 
-Amoeba.map_size = (15, 15)
+Amoeba.map_size = (8, 8)
 
 graphical_view = GraphicalView(Amoeba.map_size)
 hand_written_agent = HandWrittenAgent()

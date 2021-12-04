@@ -1,7 +1,7 @@
 import time
 
 from AmoebaPlayGround.Amoeba import AmoebaGame, Player
-from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
+from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter
 from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, TrainingSampleCollection
@@ -10,14 +10,14 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
 class GameGroup:
     def __init__(self, batch_size, x_agent=None, o_agent=None,
                  view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator,
-                 move_selector=MaximalMoveSelector(), evaluation=False, reversed_agent_order=False,
+                 move_selection_strategy=MoveSelectionStrategy(), evaluation=False, reversed_agent_order=False,
                  progress_printer=BaseProgressPrinter()):
         self.reversed_agent_order = reversed_agent_order
         self.x_agent = x_agent
         self.o_agent = o_agent
         self.progress_printer = progress_printer
         self.games = []
-        self.move_selector = move_selector
+        self.move_selection_strategy = move_selection_strategy
         self.training_sample_generators = []
         self.evaluation = evaluation
         for index in range(batch_size):
@@ -48,7 +48,8 @@ class GameGroup:
             for game, training_sample_generator, action_probability_map in zip(self.games,
                                                                                self.training_sample_generators,
                                                                                action_probabilities):
-                action = self.move_selector.select_move(action_probability_map)
+                action = self.move_selection_strategy.get_move_selector(turn_number, self.evaluation).select_move(
+                    action_probability_map)
                 training_sample_generator.add_move(game.get_board_of_next_player(), action_probability_map,
                                                    game.get_next_player())
                 game.step(action)

@@ -22,7 +22,8 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, game_executor, evaluation_match_count=36, puzzle_variation_count=50):
+    def __init__(self, game_executor, evaluation_match_count=128, puzzle_variation_count=50,
+                 log_file=None):
         self.game_executor = game_executor
         self.reference_agent = None
         self.reference_agent_rating = None
@@ -77,10 +78,3 @@ class EloEvaluator(Evaluator):
         self.reference_agent = agent
         self.reference_agent_rating = rating
 
-# 1. evaluator recieves an agent
-# 2. takes this agent and runs a 1000 games between it and the agent evaluated against ( half one staring half the other)
-# 3. calculates elo rating from the elo rating of the reference agent and the win ratio
-# 4. returns the win ratio and elo rating
-# 5. initially elo of the first agent is 0, what we evaluate against is the previous episode agent
-# future ideas:
-# what if elo rating is not consistent when evaluating against multiple agents?

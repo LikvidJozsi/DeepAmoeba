@@ -69,3 +69,9 @@ plt.plot(np.arange(len(df)), df['fraction_won_by_player_1'], 'm', label="won_by_
 plt.title("self play_stats")
 plt.legend()
 plt.show()
+
+plt.plot(np.arange(len(df)), df['hand_written_agent_score'], 'b', label="hand written score")
+plt.plot(np.arange(len(df)), df['fraction_draw'], 'b', label="self-play draws")
+plt.title("hand_written_agent winrate")
+plt.legend()
+plt.show()

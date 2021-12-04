@@ -21,6 +21,11 @@ class TrainingDatasetGenerator:
             self.sample_collections.pop(0)
         self.sample_collections.append(collection)
 
+    def set_episode_window_width(self, width):
+        if len(self.sample_collections) > width:
+            self.sample_collections = self.sample_collections[(len(self.sample_collections) - width):]
+        self.episode_window_width = width
+
     def get_sample_count(self):
         self.update_dataset_sizes()
         return self.cumulative_dataset_sizes[-1] * self.symmetry_count

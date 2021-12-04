@@ -52,7 +52,7 @@ class PolicyValueNetwork(NetworkModel):
 
 
 class ResNetLike(NetworkModel):
-    def __init__(self, network_depth=8, reg=0.0002, training_epochs=12, batch_size=256):
+    def __init__(self, network_depth=8, reg=0.00007, training_epochs=12, batch_size=128):
         self.network_depth = network_depth
         self.reg = reg
         self.training_epochs = training_epochs
@@ -69,7 +69,7 @@ class ResNetLike(NetworkModel):
         value = self.get_value_head(current_network_end)
 
         model = Model(inputs=input, outputs=[policy, value])
-        optimizer = Adam(learning_rate=0.01)
+        optimizer = Adam(learning_rate=0.002)
         # optimizer = SGD(learning_rate=0.01)
         model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
         return model

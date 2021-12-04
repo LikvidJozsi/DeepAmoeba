@@ -4,6 +4,7 @@ import pickle
 
 from AmoebaPlayGround.Agents import AmoebaAgent
 from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
+from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 from AmoebaPlayGround.Training.Input import get_model_filename
 from AmoebaPlayGround.Training.Logger import Statistics, FileLogger
@@ -14,27 +15,30 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGen
 class AmoebaTrainer:
     def __init__(self, learning_agent, teaching_agents, self_play=True, game_executor=None,
                  worker_count=2, training_sample_entropy_cutoff_schedule=None, resume_previous_training=False,
-                 training_sample_turn_cutoff_schedule=None, sample_episode_window_width=6):
+                 training_sample_turn_cutoff_schedule=None, sample_episode_window_width_schedule=None,
+                 move_selection_strategy=MoveSelectionStrategy()):
         self.learning_agent: AmoebaAgent = learning_agent
         self.learning_agent_with_old_state: AmoebaAgent = learning_agent.get_copy()
         self.teaching_agents = teaching_agents
         self.training_sample_entropy_cutoff_schedule = training_sample_entropy_cutoff_schedule
         self.training_sample_turn_cutoff_schedule = training_sample_turn_cutoff_schedule
+        self.sample_episode_window_width_schedule = sample_episode_window_width_schedule
 
         if game_executor is None:
-            game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state, worker_count)
+            game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state, worker_count,
+                                                 move_selection_strategy=move_selection_strategy)
 
         self.evaluator = EloEvaluator(game_executor)
         self.game_executor = game_executor
         self.self_play = self_play
-
+        self.resume_previous_training = resume_previous_training
         if resume_previous_training:
             self.training_id = self.get_latest_training_id()
             self.training_dataset_generator = self.load_latest_dataset()
             self.logger = FileLogger(self.training_id)
             self.current_episode = self.logger.get_log_episode_count()
         else:
-            self.training_dataset_generator = TrainingDatasetGenerator(episode_window_width=sample_episode_window_width)
+            self.training_dataset_generator = TrainingDatasetGenerator()
             self.training_id = get_model_filename()
             self.logger = FileLogger(self.training_id)
             self.current_episode = 0
@@ -63,7 +67,10 @@ class AmoebaTrainer:
         training_sample_entropy_cutoff = self.get_scheduled_value_for_episode(
             self.training_sample_entropy_cutoff_schedule,
             episode_index)
-        return training_sample_turn_cutoff, training_sample_entropy_cutoff
+        sample_episode_window_width = self.get_scheduled_value_for_episode(
+            self.sample_episode_window_width_schedule,
+            episode_index)
+        return training_sample_turn_cutoff, training_sample_entropy_cutoff, sample_episode_window_width
 
     def load_latest_dataset(self):
         with open("Datasets/latest_dataset.p", "rb") as file:
@@ -89,16 +96,22 @@ class AmoebaTrainer:
         self.batch_size = batch_size
         self.view = view
 
+        latest_rating = 1000
+        if self.resume_previous_training:
+            latest_rating = self.logger.get_latest_agent_rating()
+
         if self.self_play:
-            self.evaluator.set_reference_agent(self.learning_agent_with_old_state)
+            self.evaluator.set_reference_agent(self.learning_agent_with_old_state, latest_rating)
 
         while self.current_episode < num_episodes:
             self.logger.log("episode", self.current_episode)
-            training_sample_turn_cutoff, training_sample_entropy_cutoff = self.recalculate_scheduled_parameters(
+            training_sample_turn_cutoff, training_sample_entropy_cutoff, \
+            sample_episode_window_width = self.recalculate_scheduled_parameters(
                 self.current_episode)
             statistics = Statistics()
+            self.training_dataset_generator.set_episode_window_width(sample_episode_window_width)
             print(f'\nEpisode {self.current_episode}, training_sample_turn_cutoff:{training_sample_turn_cutoff}, '
-                  f'training_sample_entropy_cutoff: {training_sample_entropy_cutoff}')
+                  f'sample_episode_window_width: {sample_episode_window_width}, sample_episode_count: {len(self.training_dataset_generator.sample_collections)}')
             if use_quickstart_dataset and self.current_episode == 0:
                 training_samples, group_statistics = self.load_quickstart_dataset(
                     training_sample_entropy_cutoff, training_sample_turn_cutoff)

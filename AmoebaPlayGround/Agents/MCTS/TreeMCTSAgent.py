@@ -6,9 +6,9 @@ from AmoebaPlayGround.Agents.TensorflowModels import NetworkModel, ResNetLike
 class TreeMCTSAgent(BatchMCTSAgent):
 
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=2.0,
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
                  batch_size=20, training_epochs=10, dirichlet_ratio=0.1, map_size=(8, 8),
-                 max_intra_game_parallelism=8, neural_network_evaluator=None,
+                 max_intra_game_parallelism=4, neural_network_evaluator=None,
                  virtual_loss=1, training_dataset_max_size=600000):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, batch_size,
                          training_epochs, dirichlet_ratio, map_size, MCTSTree, max_intra_game_parallelism,
@@ -36,7 +36,6 @@ class TreeMCTSAgent(BatchMCTSAgent):
             node.set_policy(policy)
 
     def node_selected(self, selected_node, path):
-        pass
         if len(path) > 0:
             (previous_node, move) = path[-1]
             previous_node.child_policy_calculation_started(move)

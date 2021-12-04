@@ -7,7 +7,7 @@ from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import PlaceholderAgent
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
-from AmoebaPlayGround.GameExecution.MoveSelector import DistributionMoveSelector
+from AmoebaPlayGround.GameExecution.MoveSelector import DistributionMoveSelector, MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
     ParallelProgressPrinterActor
 from AmoebaPlayGround.GameExecution.SingleThreadGameExecutor import GameExecutor
@@ -16,7 +16,8 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
 
 
 class ParallelGameExecutor(GameExecutor):
-    def __init__(self, learning_agent: BatchMCTSAgent, reference_agent: BatchMCTSAgent, worker_count=4):
+    def __init__(self, learning_agent: BatchMCTSAgent, reference_agent: BatchMCTSAgent, worker_count=4,
+                 move_selection_strategy=MoveSelectionStrategy()):
 
         if worker_count % 2 != 0:
             raise Exception("worker count should be the multiple of 2")
@@ -37,7 +38,7 @@ class ParallelGameExecutor(GameExecutor):
         for i in range(worker_count):
             worker = GameExecutorWorker.remote(learning_agent.get_weights(), reference_agent.get_weights(),
                                                learning_agent.map_size, i, learning_agent.get_config(),
-                                               self.printer_actor)
+                                               self.printer_actor, move_selection_strategy)
             learning_agent.add_synchronized_copy(worker.set_learning_agent_weights)
             reference_agent.add_synchronized_copy(worker.set_reference_agent_weights)
             workers.append(worker)
@@ -81,7 +82,7 @@ class ParallelGameExecutor(GameExecutor):
 @ray.remote
 class GameExecutorWorker:
     def __init__(self, learning_agent_weights, reference_agent_weights, map_size, id, agent_config,
-                 progress_printer_actor):
+                 progress_printer_actor, move_selection_strategy):
         Amoeba.map_size = map_size
         self.learning_agent = BatchMCTSAgent(**agent_config)
         self.learning_agent.set_weights(learning_agent_weights)
@@ -89,6 +90,7 @@ class GameExecutorWorker:
         self.reference_agent.set_weights(reference_agent_weights)
         self.id = id
         self.progress_printer = ParallelProgressPrinter(progress_printer_actor, self.id)
+        self.move_selection_strategy = move_selection_strategy
 
     def set_learning_agent_weights(self, agent_1_weights):
         self.learning_agent.set_weights(agent_1_weights)
@@ -113,7 +115,7 @@ class GameExecutorWorker:
 
         game_group = GameGroup(game_count, agent_1, agent_2,
                                training_sample_generator_class=training_sample_generator_class,
-                               move_selector=move_selector, evaluation=evaluation,
+                               move_selection_strategy=self.move_selection_strategy, evaluation=evaluation,
                                reversed_agent_order=agent_order_reversed,
                                progress_printer=progress_printer)
         return game_group.play_all_games()

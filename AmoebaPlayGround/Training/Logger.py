@@ -142,6 +142,12 @@ class FileLogger(Logger):
         self.field_names.append(key)
         self.field_values.append(str(value))
 
+    def get_latest_agent_rating(self):
+        with open(self.log_file_path, "r") as log_file:
+            rating_field_index = self.headers.index("agent_rating")
+            latest_rating = log_file.readlines()[-1].split(field_separator)[rating_field_index]
+            return float(latest_rating)
+
     def get_log_episode_count(self):
         with open(self.log_file_path, "r") as log_file:
             return len(log_file.readlines()) - 1
