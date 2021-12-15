@@ -46,7 +46,7 @@ class AmoebaGame:
         if self.view is not None:
             self.view.display_game_state(self.map)
 
-    def place_first_piece(self, max_distance_from_center=5):
+    def place_first_piece(self, max_distance_from_center=2):
         board_size = self.map.get_shape()
         board_half_size = board_size[0] // 2
         max_distance_from_center = min(max_distance_from_center, board_half_size - 1)

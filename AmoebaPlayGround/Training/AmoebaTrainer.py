@@ -82,9 +82,9 @@ class AmoebaTrainer:
             pickle.dump(dataset, file)
 
     def load_quickstart_dataset(self, training_sample_entropy_cutoff, training_sample_turn_cutoff):
-        with open("Datasets/quickstart_dataset_8x8.p", "rb") as file:
+        with open("Datasets/quickstart_dataset.p", "rb") as file:
             dataset = pickle.load(file)
-        with open("Datasets/quickstart_dataset_statistics_8x8.p", "rb") as file:
+        with open("Datasets/quickstart_dataset_statistics.p", "rb") as file:
             statistics = pickle.load(file)
 
         dataset.filter_samples(training_sample_entropy_cutoff,

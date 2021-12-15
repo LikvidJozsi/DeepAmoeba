@@ -1,4 +1,5 @@
 import os
+import time
 
 import ray
 from ray.util import ActorPool
@@ -7,7 +8,7 @@ from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import PlaceholderAgent
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
-from AmoebaPlayGround.GameExecution.MoveSelector import DistributionMoveSelector, MoveSelectionStrategy
+from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
     ParallelProgressPrinterActor
 from AmoebaPlayGround.GameExecution.SingleThreadGameExecutor import GameExecutor
@@ -49,17 +50,31 @@ class ParallelGameExecutor(GameExecutor):
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, evaluation=False,
                                   print_progress=True):
+        original_agent_1 = agent_1
+        original_agent_2 = agent_2
         agent_1 = self.replace_neural_agents_with_placeholders(agent_1)
         agent_2 = self.replace_neural_agents_with_placeholders(agent_2)
         game_groups = self.generate_workloads(agent_1, agent_2, game_count, evaluation, print_progress)
         if print_progress:
             ray.get(self.printer_actor.reset.remote())
             self.group_started(agent_1.get_name(), agent_2.get_name(), game_count)
+        time_before_play = time.time()
         results = self.worker_pool.map(lambda worker, params: worker.play_games_between_agents.remote(*params),
                                        game_groups)
+
         games, training_samples, statistics, avg_turn_time = self.merge_results(results)
+        time_after_play = time.time()
         if print_progress:
-            self.group_finished(avg_turn_time / self.worker_count)
+            total_time = time_after_play - time_before_play
+            searches_per_step = 0
+            if type(original_agent_1) is BatchMCTSAgent:
+                searches_per_step += original_agent_1.search_count
+            if type(original_agent_2) is BatchMCTSAgent:
+                searches_per_step += original_agent_2.search_count
+            searches_per_step /= 2
+            total_steps = statistics.step_count
+            nps = (searches_per_step * total_steps) / total_time
+            self.group_finished(nps)
         return games, training_samples, statistics
 
     def replace_neural_agents_with_placeholders(self, agent):
@@ -103,7 +118,6 @@ class GameExecutorWorker:
 
         agent_1 = self.replace_placeholder_agent(agent_1)
         agent_2 = self.replace_placeholder_agent(agent_2)
-        move_selector = DistributionMoveSelector()
         if print_progress:
             progress_printer = self.progress_printer
         else:

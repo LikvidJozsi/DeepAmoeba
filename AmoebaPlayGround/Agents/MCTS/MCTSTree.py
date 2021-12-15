@@ -77,4 +77,27 @@ class MCTSTree(BaseMCTSTree):
         pass
 
     def get_node_count(self):
+        # return self.get_subtree_node_count(self.root_node)
         return 0
+
+    @staticmethod
+    def policy_calculations_ended(nodes, selection_paths):
+        pass
+        '''for path, node in zip(selection_paths, nodes):
+            if len(path) > 0:
+                (node, move) = path[-1]
+                node.child_policy_calculation_ended(move)'''
+
+    @staticmethod
+    def policy_calculation_started(node, selection_path):
+        pass
+        '''if len(selection_path) > 0:
+            (previous_node, move) = selection_path[-1]
+            previous_node.child_policy_calculation_started(move)'''
+
+    def get_subtree_node_count(self, node):
+        subtree_size = 0
+        for index, child in np.ndenumerate(node.children):
+            if child is not None:
+                subtree_size += self.get_subtree_node_count(child)
+        return subtree_size + 1

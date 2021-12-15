@@ -1,3 +1,5 @@
+import time
+
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.ProgressPrinter import SingleThreadedProgressPrinter, BaseProgressPrinter
@@ -31,8 +33,8 @@ class GameExecutor:
         print("Playing {count} games between {agent_1} and {agent_2}:".
               format(count=game_count, agent_1=agent_1_name, agent_2=agent_2_name))
 
-    def group_finished(self, average_turn_time):
-        print("\nBatch finished, avg_turn_time: {:.5f}\n".format(average_turn_time))
+    def group_finished(self, average_nodes_per_sec):
+        print("\nBatch finished, avg_nps: {:.5f}\n".format(average_nodes_per_sec))
 
 
 class SingleThreadGameExecutor(GameExecutor):
@@ -52,6 +54,8 @@ class SingleThreadGameExecutor(GameExecutor):
             progress_printer = SingleThreadedProgressPrinter()
         else:
             progress_printer = BaseProgressPrinter()
+
+        time_before_play = time.perf_counter()
         game_group_1 = GameGroup(games_per_group, agent_1, agent_2, None, progress_printer=progress_printer,
                                  training_sample_generator_class=training_sample_generator_class,
                                  move_selection_strategy=self.move_selection_strategy, evaluation=evaluation)
@@ -67,6 +71,11 @@ class SingleThreadGameExecutor(GameExecutor):
             self.group_started(agent_2.get_name(), agent_1.get_name(), games_per_group)
         group_2_results = game_group_2.play_all_games()
         games, training_samples, statistics, avg_turn_length = self.merge_results([group_1_results, group_2_results])
+        time_after_play = time.perf_counter()
         if print_progress:
-            self.group_finished(avg_turn_length)
+            total_time = time_after_play - time_before_play
+            searches_per_step = (agent_1.search_count + agent_2.search_count) / 2
+            total_steps = statistics.step_count
+            nps = (searches_per_step * total_steps) / total_time
+            self.group_finished(nps)
         return games, training_samples, statistics

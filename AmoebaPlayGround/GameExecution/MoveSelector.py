@@ -46,3 +46,17 @@ class MoveSelectionStrategy:
             return self.late_game_move_selector
         else:
             return self.early_game_move_selector
+
+
+class EvaluationMoveSelectionStrategy:
+    def __init__(self, early_game_move_selector=DistributionMoveSelector(1),
+                 late_game_move_selector=DistributionMoveSelector(1 / 16), late_game_start_turn=15):
+        self.early_game_move_selector = early_game_move_selector
+        self.late_game_move_selector = late_game_move_selector
+        self.late_game_start_turn = late_game_start_turn
+
+    def get_move_selector(self, turn, evaluation):
+        if turn >= self.late_game_start_turn:
+            return self.late_game_move_selector
+        else:
+            return self.early_game_move_selector

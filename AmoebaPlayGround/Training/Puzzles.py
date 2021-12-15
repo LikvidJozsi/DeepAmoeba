@@ -120,9 +120,9 @@ class PuzzleEvaluator:
     def evaluate_agent(self, agent: AmoebaAgent, logger=None):
         self.evaluate_on_level(agent, logger, "level_1", self.level_1)
         self.evaluate_on_level(agent, logger, "level_2", self.level_2)
-        self.evaluate_on_level(agent, logger, "level_3", self.level_3)
-        self.evaluate_on_level(agent, logger, "level_4", self.level_4)
-        self.evaluate_on_level(agent, logger, "level_5", self.level_5)
+        # self.evaluate_on_level(agent, logger, "level_3", self.level_3)
+        # self.evaluate_on_level(agent, logger, "level_4", self.level_4)
+        # self.evaluate_on_level(agent, logger, "level_5", self.level_5)
 
     def evaluate_on_level(self, agent, logger, level_name, level_puzzles):
         policy_score, policy_entropy, search_score, search_entropy, \

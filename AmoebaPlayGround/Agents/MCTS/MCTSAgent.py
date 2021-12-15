@@ -70,16 +70,17 @@ class MCTSAgent(NeuralAgent):
                                   np.sqrt(search_node.visited_count + 1e-8) / (1 + search_node.move_visited_counts)
         upper_confidence_bounds[search_node.invalid_moves] = -np.inf
 
-        ranked_moves = np.argsort(upper_confidence_bounds.flatten())
-        number_of_valid_moves = len(ranked_moves) - search_node.invalid_move_count
-        for index, move in enumerate(reversed(ranked_moves)):
-            if index >= number_of_valid_moves:
-                break
-            move_2d = tuple(np.unravel_index(move, search_node.board_state.get_shape()))
-            chosen_move_node = search_tree.get_the_node_of_move(search_node, move_2d, player)
-            if not chosen_move_node.pending_policy_calculation:
-                return move_2d, chosen_move_node
-        return None, None
+        valid_upper_confidence_bounds = np.where(search_node.invalid_moves, -np.inf, upper_confidence_bounds)
+        best_move = np.argmax(valid_upper_confidence_bounds)
+        board_shape = search_node.board_state.get_shape()
+        index_1 = best_move // board_shape[0]
+        index_2 = best_move - index_1 * board_shape[0]
+        best_move = (index_1, index_2)
+        if valid_upper_confidence_bounds[best_move] == -np.inf:
+            return None
+
+        chosen_move_node = search_tree.get_the_node_of_move(search_node, best_move, player)
+        return best_move, chosen_move_node
 
     def format_input(self, game_boards: List[np.ndarray], players=None):
         if players is not None:

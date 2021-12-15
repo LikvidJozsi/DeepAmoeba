@@ -34,10 +34,10 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=6.0,
-                 batch_size=20, training_epochs=4, dirichlet_ratio=0.25, map_size=(8, 8),
-                 tree_type=DictMCTSTree, max_intra_game_parallelism=16, neural_network_evaluator=None,
-                 virtual_loss=3, training_dataset_max_size=200000):
+                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
+                 batch_size=20, training_epochs=4, dirichlet_ratio=0.1, map_size=(8, 8),
+                 tree_type=DictMCTSTree, max_intra_game_parallelism=8, neural_network_evaluator=None,
+                 virtual_loss=1, training_dataset_max_size=600000):
         super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size, training_dataset_max_size)
         self.batch_size = batch_size
@@ -85,7 +85,6 @@ class BatchMCTSAgent(MCTSAgent):
         self.statistics.add_tree_statistics(finished_positions)
         return self.get_move_probabilities_from_nodes(list(map(lambda p: p.search_node, finished_positions)),
                                                       player), self.statistics
-
 
     def get_search_trees_for_games(self, games):
         updated_tree_dictionary = dict()
@@ -135,7 +134,7 @@ class BatchMCTSAgent(MCTSAgent):
     def set_policies(self, nodes, policies, paths):
         for node, policy in zip(nodes, policies):
             node.set_policy(policy)
-            node.policy_calculation_ended()
+        self.tree_type.policy_calculations_ended(nodes, paths)
 
     def run_selection(self, positions_to_search, player):
         paths = []
@@ -196,7 +195,7 @@ class BatchMCTSAgent(MCTSAgent):
             current_player = current_player.get_other_player()
 
     def node_selected(self, node, path):
-        pass
+        self.tree_type.policy_calculation_started(node, path)
 
     def selection_cancelled(self, path):
         for node, move in path:

@@ -125,6 +125,20 @@ class DictMCTSTree(BaseMCTSTree):
         self.current_turn = new_turn
         self.tree_levels = self.tree_levels[progress:]
 
+    @staticmethod
+    def policy_calculations_ended(nodes, selection_paths):
+        for node in nodes:
+            node.policy_calculation_ended()
+
+    @staticmethod
+    def policy_calculation_started(node, selection_path):
+        node.policy_calculation_started()
+
+    # def get_node_count(self):
+    #    trans_count = self.transpositions
+    #    self.transpositions = 0
+    #    return trans_count
+
     def get_node_count(self):
         sum_node_count = 0
         for level in self.tree_levels:

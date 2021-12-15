@@ -65,6 +65,7 @@ class MCTSNode:
         return self.neural_network_policy
 
 
+
 class MCTSRootNode(MCTSNode):
     def __init__(self, board_state: AmoebaBoard, has_game_ended=False, eps=0.25, **kwargs):
         super().__init__(board_state=board_state, has_game_ended=has_game_ended, **kwargs)
@@ -91,4 +92,12 @@ class BaseMCTSTree:
         pass
 
     def get_node_count(self):
+        pass
+
+    @staticmethod
+    def policy_calculations_ended(nodes, selection_paths):
+        pass
+
+    @staticmethod
+    def policy_calculation_started(node, selection_path):
         pass
