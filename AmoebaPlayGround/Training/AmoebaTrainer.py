@@ -3,8 +3,8 @@ import os
 import pickle
 
 from AmoebaPlayGround.Agents import AmoebaAgent
-from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
+from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 from AmoebaPlayGround.Training.Input import get_model_filename
 from AmoebaPlayGround.Training.Logger import Statistics, FileLogger
@@ -130,11 +130,12 @@ class AmoebaTrainer:
                         statistics.merge_statistics(group_statistics)
                     print('Average game length against %s: %f' % (
                         teaching_agent.get_name(), statistics.get_average_game_length()))
-            self.learning_agent.copy_weights_into(self.learning_agent_with_old_state)
+            self.learning_agent.get_neural_network_model().copy_weights_into(
+                self.learning_agent_with_old_state.get_neural_network_model())
             statistics.log(self.logger)
             print('Training agent:')
             train_history = self.learning_agent.train(self.training_dataset_generator)
-            self.learning_agent.distribute_weights()
+            self.learning_agent.get_neural_network_model().distribute_weights()
             last_loss = train_history.history['loss'][-1]
             self.logger.log("loss", last_loss)
 

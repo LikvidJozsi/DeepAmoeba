@@ -24,7 +24,7 @@ class ParallelGameExecutor(GameExecutor):
             raise Exception("worker count should be the multiple of 2")
         if learning_agent.search_count != reference_agent.search_count:
             raise Exception("agents have inconsistent search counts")
-        if learning_agent.batch_size != reference_agent.batch_size:
+        if learning_agent.inference_batch_size != reference_agent.inference_batch_size:
             raise Exception("agents have inconsistent batch sizes")
         if learning_agent.map_size != reference_agent.map_size:
             raise Exception("agents have inconsistent map sizes")
@@ -37,11 +37,13 @@ class ParallelGameExecutor(GameExecutor):
         self.printer_actor = ParallelProgressPrinterActor.remote(worker_count)
 
         for i in range(worker_count):
-            worker = GameExecutorWorker.remote(learning_agent.get_weights(), reference_agent.get_weights(),
+            learning_agent_model = learning_agent.get_neural_network_model()
+            reference_agent_model = reference_agent.get_neural_network_model()
+            worker = GameExecutorWorker.remote(learning_agent_model.get_weights(), reference_agent_model.get_weights(),
                                                learning_agent.map_size, i, learning_agent.get_config(),
                                                self.printer_actor, move_selection_strategy)
-            learning_agent.add_synchronized_copy(worker.set_learning_agent_weights)
-            reference_agent.add_synchronized_copy(worker.set_reference_agent_weights)
+            learning_agent_model.add_synchronized_copy(worker.set_learning_agent_weights)
+            reference_agent_model.add_synchronized_copy(worker.set_reference_agent_weights)
             workers.append(worker)
         self.worker_pool = ActorPool(workers)
         self.worker_count = worker_count
@@ -100,18 +102,22 @@ class GameExecutorWorker:
                  progress_printer_actor, move_selection_strategy):
         Amoeba.map_size = map_size
         self.learning_agent = BatchMCTSAgent(**agent_config)
-        self.learning_agent.set_weights(learning_agent_weights)
+        learning_agent_model = self.learning_agent.get_neural_network_model()
+        learning_agent_model.create_model()
+        learning_agent_model.set_weights(learning_agent_weights)
         self.reference_agent = BatchMCTSAgent(**agent_config)
-        self.reference_agent.set_weights(reference_agent_weights)
+        reference_agent_model = self.reference_agent.get_neural_network_model()
+        reference_agent_model.create_model()
+        reference_agent_model.set_weights(reference_agent_weights)
         self.id = id
         self.progress_printer = ParallelProgressPrinter(progress_printer_actor, self.id)
         self.move_selection_strategy = move_selection_strategy
 
     def set_learning_agent_weights(self, agent_1_weights):
-        self.learning_agent.set_weights(agent_1_weights)
+        self.learning_agent.get_neural_network_model().set_weights(agent_1_weights)
 
     def set_reference_agent_weights(self, agent_2_weights):
-        self.reference_agent.set_weights(agent_2_weights)
+        self.reference_agent.get_neural_network_model().set_weights(agent_2_weights)
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, evaluation,
                                   agent_order_reversed, print_progress):

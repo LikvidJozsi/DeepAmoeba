@@ -5,7 +5,7 @@ import numpy as np
 from AmoebaPlayGround.Agents.MCTS.BaseMCTSTree import MCTSNode
 from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import DictMCTSTree
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
-from AmoebaPlayGround.Agents.TensorflowModels import NetworkModel, ResNetLike
+from AmoebaPlayGround.Agents.TensorflowModels import NeuralNetworkModel
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Training.Logger import Statistics
 
@@ -33,40 +33,39 @@ class PositionToSearch:
 
 
 class BatchMCTSAgent(MCTSAgent):
-    def __init__(self, model_name=None, load_latest_model=False,
-                 model_type: NetworkModel = ResNetLike(6), search_count=100, exploration_rate=1.4,
-                 batch_size=20, training_epochs=4, dirichlet_ratio=0.1, map_size=(8, 8),
+    def __init__(self, model: NeuralNetworkModel, search_count=100, exploration_rate=1.4,
+                 inference_batch_size=20, training_epochs=4, dirichlet_ratio=0.1, map_size=(8, 8),
                  tree_type=DictMCTSTree, max_intra_game_parallelism=8, neural_network_evaluator=None,
                  virtual_loss=1, training_dataset_max_size=600000):
-        super().__init__(model_name, load_latest_model, model_type, search_count, exploration_rate, training_epochs,
+        super().__init__(model, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size, training_dataset_max_size)
-        self.batch_size = batch_size
+        self.inference_batch_size = inference_batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
         self.tree_type = tree_type
         self.virtual_loss = virtual_loss
         self.max_intra_game_parallelism = max_intra_game_parallelism
-        self.config = {"model_name": model_name, "load_latest_model": load_latest_model, "model_type": model_type,
-                       "search_count": search_count, "exploration_rate": exploration_rate, "batch_size": batch_size,
-                       "training_epochs": training_epochs, "dirichlet_ratio": dirichlet_ratio, "map_size": map_size,
-                       "tree_type": tree_type, "max_intra_game_parallelism": max_intra_game_parallelism,
-                       "virtual_loss": virtual_loss, "training_dataset_max_size": training_dataset_max_size}
 
     def reset_statistics(self):
         self.statistics = Statistics()
 
     def get_config(self):
-        return self.config
+        return {"model": self.model.get_uninitialized_copy(),
+                "search_count": self.search_count, "exploration_rate": self.exploration_rate,
+                "inference_batch_size": self.inference_batch_size,
+                "training_epochs": self.training_epochs, "dirichlet_ratio": self.dirichlet_ratio,
+                "map_size": self.map_size,
+                "tree_type": self.tree_type, "max_intra_game_parallelism": self.max_intra_game_parallelism,
+                "virtual_loss": self.virtual_loss, "training_dataset_max_size": self.training_dataset_max_size}
 
     def get_copy(self):
-        new_instance = self.__class__(model_type=self.model_type, search_count=self.search_count,
+        new_instance = self.__class__(model=self.model.get_copy(), search_count=self.search_count,
                                       exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
                                       dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type,
-                                      batch_size=self.batch_size, map_size=self.map_size,
+                                      inference_batch_size=self.inference_batch_size, map_size=self.map_size,
                                       max_intra_game_parallelism=self.max_intra_game_parallelism,
                                       virtual_loss=self.virtual_loss,
                                       training_dataset_max_size=self.training_dataset_max_size)
-        new_instance.set_weights(self.get_weights())
         return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
@@ -141,7 +140,7 @@ class BatchMCTSAgent(MCTSAgent):
         leaf_nodes = []
         last_players = []
         positions_to_search = sorted(positions_to_search, key=lambda x: x.searches_remaining, reverse=True)
-        while len(paths) < self.batch_size and len(positions_to_search) > 0:
+        while len(paths) < self.inference_batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
                 path, end_node, end_player, can_continue_search = self.run_selection_for_node(position, player)
@@ -149,7 +148,7 @@ class BatchMCTSAgent(MCTSAgent):
                     paths.append(path)
                     leaf_nodes.append(end_node)
                     last_players.append(end_player)
-                    if len(paths) >= self.batch_size:
+                    if len(paths) >= self.inference_batch_size:
                         break
                 if can_continue_search:
                     remaining_positions_to_search.append(position)
@@ -203,13 +202,10 @@ class BatchMCTSAgent(MCTSAgent):
 
     def run_simulation(self, leaf_nodes: List[MCTSNode], players):
         board_states = list(map(lambda node: node.board_state.cells, leaf_nodes))
-        board_size = board_states[0].shape
-        input = self.format_input(board_states, players)
         invalid_moves = list(map(lambda node: node.invalid_moves, leaf_nodes))
         invalid_moves = np.array(invalid_moves)
 
-        output_2d, value = self.model.predict(input, batch_size=self.batch_size)
-        output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
+        output_2d, value = self.model.predict(board_states, players, self.inference_batch_size)
         valid_moves = np.logical_not(invalid_moves)
         output_2d = output_2d * valid_moves
         # handle all zero outputs

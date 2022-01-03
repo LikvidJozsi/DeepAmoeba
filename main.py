@@ -7,18 +7,15 @@ from AmoebaPlayGround.Training.AmoebaTrainer import AmoebaTrainer
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 
-# gui_agent = GraphicalView(Amoeba.map_size)
-learning_agent = BatchMCTSAgent(load_latest_model=False, batch_size=400, search_count=600, map_size=Amoeba.map_size,
-                                model_type=ResNetLike(6),
+neural_network_model = ResNetLike(Amoeba.map_size, network_depth=6, training_batch_size=32)
+neural_network_model.create_model()
+learning_agent = BatchMCTSAgent(model=neural_network_model, inference_batch_size=400, search_count=600,
+                                map_size=Amoeba.map_size,
                                 max_intra_game_parallelism=8, training_dataset_max_size=400000,
                                 tree_type=MCTSTree)
-learning_agent.print_model_summary()
-# random_agent = RandomAgent()
-# hand_written_agent = HandWrittenAgent()
+neural_network_model.print_model_summary()
+
 # exe = SingleThreadGameExecutor()
-# evaluator.evaluate_against_agent(gui_agent,hand_written_agent)
-# trainer = AmoebaTrainer(learning_agent, teaching_agents=[random_agent, hand_written_agent], self_play=False,
-#                        reward_calculator=PolicyGradientsWithNegativeTeaching())
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True,
                         game_executor=None, worker_count=4,
                         training_sample_turn_cutoff_schedule=[(0, 10000), (1, 10000)],

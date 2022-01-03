@@ -3,13 +3,14 @@ import ray
 from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
 from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
-from AmoebaPlayGround.GameExecution.GameParallelizer import ParallelGameExecutor
+from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
 Amoeba.map_size = (8, 8)
 
-neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=True, batch_size=400, map_size=Amoeba.map_size,
+neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=True, inference_batch_size=400,
+                              map_size=Amoeba.map_size,
                               max_intra_game_parallelism=8, tree_type=MCTSTree)
 
 game_executor = ParallelGameExecutor(neural_agent, neural_agent, 8)
