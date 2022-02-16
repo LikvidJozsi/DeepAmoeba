@@ -9,7 +9,7 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleColl
 
 Amoeba.map_size = (8, 8)
 
-neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=True, inference_batch_size=400,
+neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=True, search_batch_size=400,
                               map_size=Amoeba.map_size,
                               max_intra_game_parallelism=8, tree_type=MCTSTree)
 

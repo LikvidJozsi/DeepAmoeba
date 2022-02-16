@@ -6,10 +6,10 @@ from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import Paral
 from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection
 
-agent_1 = BatchMCTSAgent(search_count=600, load_latest_model=True, inference_batch_size=600, map_size=Amoeba.map_size,
+agent_1 = BatchMCTSAgent(search_count=600, load_latest_model=True, search_batch_size=600, map_size=Amoeba.map_size,
                          max_intra_game_parallelism=8, tree_type=MCTSTree)
 
-agent_2 = BatchMCTSAgent(search_count=600, load_latest_model=True, inference_batch_size=600, map_size=Amoeba.map_size,
+agent_2 = BatchMCTSAgent(search_count=600, load_latest_model=True, search_batch_size=600, map_size=Amoeba.map_size,
                          max_intra_game_parallelism=8, tree_type=DictMCTSTree)
 
 game_executor = ParallelGameExecutor(agent_1, agent_2, 4)

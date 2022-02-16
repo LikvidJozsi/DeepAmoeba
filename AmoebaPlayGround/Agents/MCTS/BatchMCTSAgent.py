@@ -34,12 +34,12 @@ class PositionToSearch:
 
 class BatchMCTSAgent(MCTSAgent):
     def __init__(self, model: NeuralNetworkModel, search_count=100, exploration_rate=1.4,
-                 inference_batch_size=20, training_epochs=4, dirichlet_ratio=0.1, map_size=(8, 8),
+                 search_batch_size=20, training_epochs=4, dirichlet_ratio=0.1, map_size=(8, 8),
                  tree_type=DictMCTSTree, max_intra_game_parallelism=8, neural_network_evaluator=None,
                  virtual_loss=1, training_dataset_max_size=600000):
         super().__init__(model, search_count, exploration_rate, training_epochs,
                          dirichlet_ratio, map_size, training_dataset_max_size)
-        self.inference_batch_size = inference_batch_size
+        self.search_batch_size = search_batch_size
         self.statistics = Statistics()
         self.search_trees = dict()
         self.tree_type = tree_type
@@ -50,22 +50,25 @@ class BatchMCTSAgent(MCTSAgent):
         self.statistics = Statistics()
 
     def get_config(self):
-        return {"model": self.model.get_uninitialized_copy(),
+        return {"model": self.model.get_skeleton(),
                 "search_count": self.search_count, "exploration_rate": self.exploration_rate,
-                "inference_batch_size": self.inference_batch_size,
+                "search_batch_size": self.search_batch_size,
                 "training_epochs": self.training_epochs, "dirichlet_ratio": self.dirichlet_ratio,
                 "map_size": self.map_size,
                 "tree_type": self.tree_type, "max_intra_game_parallelism": self.max_intra_game_parallelism,
                 "virtual_loss": self.virtual_loss, "training_dataset_max_size": self.training_dataset_max_size}
 
+    def get_copy_without_model(self):
+        return self.__class__(model=None, search_count=self.search_count,
+                              exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
+                              dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type, map_size=self.map_size,
+                              max_intra_game_parallelism=self.max_intra_game_parallelism,
+                              virtual_loss=self.virtual_loss,
+                              training_dataset_max_size=self.training_dataset_max_size)
+
     def get_copy(self):
-        new_instance = self.__class__(model=self.model.get_copy(), search_count=self.search_count,
-                                      exploration_rate=self.exploration_rate, training_epochs=self.training_epochs,
-                                      dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type,
-                                      inference_batch_size=self.inference_batch_size, map_size=self.map_size,
-                                      max_intra_game_parallelism=self.max_intra_game_parallelism,
-                                      virtual_loss=self.virtual_loss,
-                                      training_dataset_max_size=self.training_dataset_max_size)
+        new_instance = self.get_copy_without_model()
+        new_instance.model = self.model.get_copy()
         return new_instance
 
     def get_step(self, games: List[AmoebaGame], player, evaluation=False):
@@ -140,7 +143,7 @@ class BatchMCTSAgent(MCTSAgent):
         leaf_nodes = []
         last_players = []
         positions_to_search = sorted(positions_to_search, key=lambda x: x.searches_remaining, reverse=True)
-        while len(paths) < self.inference_batch_size and len(positions_to_search) > 0:
+        while len(paths) < self.search_batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
                 path, end_node, end_player, can_continue_search = self.run_selection_for_node(position, player)
@@ -148,7 +151,7 @@ class BatchMCTSAgent(MCTSAgent):
                     paths.append(path)
                     leaf_nodes.append(end_node)
                     last_players.append(end_player)
-                    if len(paths) >= self.inference_batch_size:
+                    if len(paths) >= self.search_batch_size:
                         break
                 if can_continue_search:
                     remaining_positions_to_search.append(position)
@@ -160,7 +163,7 @@ class BatchMCTSAgent(MCTSAgent):
     def run_selection_for_node(self, position: PositionToSearch, player):
         current_node: MCTSNode = position.search_node
 
-        if position.parallel_searches > self.max_intra_game_parallelism:
+        if position.parallel_searches >= self.max_intra_game_parallelism:
             return None, None, None, False
 
         current_player = player
@@ -205,7 +208,7 @@ class BatchMCTSAgent(MCTSAgent):
         invalid_moves = list(map(lambda node: node.invalid_moves, leaf_nodes))
         invalid_moves = np.array(invalid_moves)
 
-        output_2d, value = self.model.predict(board_states, players, self.inference_batch_size)
+        output_2d, value = self.model.predict(board_states, players)
         valid_moves = np.logical_not(invalid_moves)
         output_2d = output_2d * valid_moves
         # handle all zero outputs

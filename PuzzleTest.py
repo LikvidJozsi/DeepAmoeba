@@ -10,7 +10,7 @@ Amoeba.win_sequence_length = 5
 
 # gui_agent = GraphicalView(Amoeba.map_size)
 # learning_agent = TreeMCTSAgent(load_latest_model=False, batch_size=300, search_count=500, map_size=Amoeba.map_size)
-learning_agent = BatchMCTSAgent(load_latest_model=False, model_name="2021-12-03_09-37-05", inference_batch_size=400,
+learning_agent = BatchMCTSAgent(load_latest_model=False, model_name="2021-12-03_09-37-05", search_batch_size=400,
                                 search_count=150, map_size=Amoeba.map_size,
                                 virtual_loss=1, exploration_rate=1.4, max_intra_game_parallelism=8)
 

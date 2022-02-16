@@ -168,8 +168,8 @@ class PuzzleEvaluator:
 
     def evaluate_policy(self, agent: MCTSAgent, puzzle):
         raw_boards = [board.map.cells for board in puzzle.board_state_variations]
-        output_2d, values = agent.get_neural_network_model().predict(raw_boards, [Player.X] * len(raw_boards),
-                                                                     inference_batch_size=len(raw_boards))
+        output_2d, values = agent.get_neural_network_model().do_predict(raw_boards, [Player.X] * len(raw_boards),
+                                                                        inference_batch_size=len(raw_boards))
         correct_moves = self.get_correct_move_count(output_2d, puzzle)
 
         variation_count = len(output_2d)

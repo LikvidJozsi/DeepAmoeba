@@ -68,7 +68,7 @@ class AmoebaGame:
 
             if hightlight_agent is not None:
                 formatted_input = hightlight_agent.format_input([self.map.cells], [self.get_next_player()])
-                output_1d, value = hightlight_agent.model.predict(formatted_input, batch_size=1)
+                output_1d, value = hightlight_agent.model.do_predict(formatted_input, batch_size=1)
                 board_size = self.map.get_shape()
                 output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
                 color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)

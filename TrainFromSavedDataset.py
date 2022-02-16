@@ -18,7 +18,7 @@ with open("Datasets/quickstart_dataset.p", 'rb') as train_file:
     log_dir = "TensorBoardLogs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
-    neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=False, inference_batch_size=400,
+    neural_agent = BatchMCTSAgent(search_count=600, load_latest_model=False, search_batch_size=400,
                                   map_size=Amoeba.map_size,
                                   model_type=ResNetLike(6))
 

@@ -8,9 +8,9 @@ Amoeba.map_size = (15, 15)
 game_executor = SingleThreadGameExecutor()
 evaluator = EloEvaluator(game_executor)
 
-neural_agent_1 = BatchMCTSAgent(search_count=500, load_latest_model=True, inference_batch_size=200,
+neural_agent_1 = BatchMCTSAgent(search_count=500, load_latest_model=True, search_batch_size=200,
                                 map_size=Amoeba.map_size)
-neural_agent_2 = BatchMCTSAgent(search_count=500, load_latest_model=False, inference_batch_size=200,
+neural_agent_2 = BatchMCTSAgent(search_count=500, load_latest_model=False, search_batch_size=200,
                                 map_size=Amoeba.map_size)
 random_agent = RandomAgent()
 evaluator.set_reference_agent(random_agent)

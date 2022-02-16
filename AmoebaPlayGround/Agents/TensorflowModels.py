@@ -31,11 +31,26 @@ def get_model_file_path(model_name):
     return os.path.join(models_folder, model_name + '.h5')
 
 
+class NeuralNetworkSkeleton:
+
+    def __init__(self, network_class, config, weights):
+        self.network_class = network_class
+        self.config = config
+        self.weights = weights
+
+    def resurrect_neural_network(self):
+        network_object = self.network_class(**self.config)
+        network_object.create_model()
+        network_object.set_weights(self.weights)
+        return network_object
+
+
 class NeuralNetworkModel(ABC):
-    def __init__(self, map_size, training_batch_size=100, training_epochs=10):
+    def __init__(self, map_size, training_batch_size=100, training_epochs=10, inference_batch_size=400):
         self.map_size = map_size
         self.copy_setter_methods: List = []
         self.training_batch_size = training_batch_size
+        self.inference_batch_size = inference_batch_size
         self.training_epochs = training_epochs
         self.model = None
 
@@ -52,14 +67,12 @@ class NeuralNetworkModel(ABC):
         pass
 
     @abstractmethod
-    def get_uninitialized_copy(self):
+    def get_skeleton(self):
         pass
 
     def get_copy(self):
-        new_instance = self.get_uninitialized_copy()
-        new_instance.create_model()
-        new_instance.set_weights(self.get_weights())
-        return new_instance
+        new_instance = self.get_skeleton()
+        return new_instance.resurrect_neural_network()
 
     def add_synchronized_copy(self, copy):
         self.copy_setter_methods.append(copy)
@@ -111,10 +124,12 @@ class NeuralNetworkModel(ABC):
         return self.model.fit(x=inputs, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
                               verbose=1, batch_size=self.training_batch_size)
 
-    def predict(self, board_states, players, inference_batch_size):
+    def predict(self, board_states, players):
         board_size = board_states[0].shape
         input = self.format_input(board_states, players)
-        output_2d, value = self.model.predict(input, batch_size=inference_batch_size)
+        if len(input) == 0:
+            print("biggus problemus")
+        output_2d, value = self.model.predict(input, batch_size=self.inference_batch_size)
         output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
         return output_2d, value
 
@@ -122,17 +137,21 @@ class NeuralNetworkModel(ABC):
 class PolicyValueNeuralNetwork(NeuralNetworkModel):
     def __init__(self, map_size, first_convolution_size=(9, 9), dropout=0.0, reg=1e-3,
                  training_epochs=10,
-                 training_batch_size=16):
+                 training_batch_size=16,
+                 inference_batch_size=400):
         self.first_convolution_size = first_convolution_size
         self.dropout = dropout
         self.reg = reg
-        super().__init__(map_size, training_batch_size, training_epochs)
+        super().__init__(map_size, training_batch_size, training_epochs, inference_batch_size)
 
-    def get_uninitialized_copy(self):
-        new_instance = self.__class__(self.map_size, first_convolution_size=self.first_convolution_size,
-                                      dropout=self.dropout, reg=self.reg, training_epochs=self.training_epochs,
-                                      training_batch_size=self.training_batch_size)
-        return new_instance
+    def get_skeleton(self):
+        config = {"map_size": self.map_size,
+                  "first_convolution_size": self.first_convolution_size,
+                  "dropout": self.dropout,
+                  "reg": self.reg,
+                  "training_epochs": self.training_epochs,
+                  "training_batch_size": self.training_batch_size}
+        return NeuralNetworkSkeleton(self.__class__, config, self.get_weights())
 
     def create_model(self):
         input = Input(shape=self.map_size + (2,))
@@ -157,16 +176,19 @@ class PolicyValueNeuralNetwork(NeuralNetworkModel):
 
 
 class ResNetLike(NeuralNetworkModel):
-    def __init__(self, map_size, network_depth=8, reg=0.000001, training_epochs=12, training_batch_size=16):
+    def __init__(self, map_size, network_depth=8, reg=0.000001, training_epochs=12, training_batch_size=16,
+                 inference_batch_size=400):
         self.network_depth = network_depth
         self.reg = reg
-        super().__init__(map_size, training_batch_size, training_epochs)
+        super().__init__(map_size, training_batch_size, training_epochs, inference_batch_size)
 
-    def get_uninitialized_copy(self):
-        new_instance = self.__class__(self.map_size, network_depth=self.network_depth,
-                                      reg=self.reg, training_epochs=self.training_epochs,
-                                      training_batch_size=self.training_batch_size)
-        return new_instance
+    def get_skeleton(self):
+        config = {"map_size": self.map_size,
+                  "network_depth": self.network_depth,
+                  "reg": self.reg,
+                  "training_epochs": self.training_epochs,
+                  "training_batch_size": self.training_batch_size}
+        return NeuralNetworkSkeleton(self.__class__, config, self.get_weights())
 
     def create_model(self):
         input = Input(shape=self.map_size + (2,))

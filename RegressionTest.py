@@ -7,7 +7,7 @@ from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 
-batch_agent = BatchMCTSAgent(load_latest_model=False, model_name="2021-06-21_20-22-27", inference_batch_size=1)
+batch_agent = BatchMCTSAgent(load_latest_model=False, model_name="2021-06-21_20-22-27", search_batch_size=1)
 batch_agent.save("regression_test")
 # simple_agent = MCTSAgent(model_name="regression_test")
 game = AmoebaGame(None)
