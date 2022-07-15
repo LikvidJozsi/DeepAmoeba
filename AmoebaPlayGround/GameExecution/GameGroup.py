@@ -8,7 +8,7 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
 
 
 class GameGroup:
-    def __init__(self, batch_size, x_agent=None, o_agent=None,
+    def __init__(self, total_game_count, batch_size, x_agent=None, o_agent=None,
                  view=None, training_sample_generator_class=SymmetricTrainingSampleGenerator,
                  move_selection_strategy=MoveSelectionStrategy(), evaluation=False, reversed_agent_order=False,
                  progress_printer=BaseProgressPrinter()):
@@ -20,6 +20,11 @@ class GameGroup:
         self.move_selection_strategy = move_selection_strategy
         self.training_sample_generators = []
         self.evaluation = evaluation
+        self.total_game_count = total_game_count
+        self.training_sample_generator_class = training_sample_generator_class
+        self.batch_size = batch_size
+        if self.total_game_count < batch_size:
+            batch_size = self.total_game_count
         for index in range(batch_size):
             self.games.append(AmoebaGame(view))
             self.training_sample_generators.append(training_sample_generator_class())
@@ -32,13 +37,25 @@ class GameGroup:
 
     def play_all_games(self):
         finished_games = []
-        number_of_games = len(self.games)
+        number_of_games = self.total_game_count
         training_samples = TrainingSampleCollection()
         sum_turn_length_sec = 0
         turn_number = 0
         statistics = Statistics()
-        while len(self.games) != 0:
-            next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
+        unstarted_games_remaining = self.total_game_count - self.batch_size
+        turn = 0
+
+        while len(self.games) != 0 or unstarted_games_remaining > 0:
+            if turn % 2 == 0 and len(self.games) < self.batch_size and unstarted_games_remaining > 0:
+                for i in range(min(self.batch_size - len(self.games), unstarted_games_remaining)):
+                    self.games.append(AmoebaGame())
+                    self.training_sample_generators.append(self.training_sample_generator_class())
+
+            if len(self.games) != 0:
+                next_agent = self.get_next_agent(
+                    self.games[0])  # the same agent has its turn in every active game at the
+            else:
+                next_agent = self.get_next_agent(AmoebaGame())
             # same time, therfore getting the agent of any of them is enough
             time_before_step = time.perf_counter()
             action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player(),
@@ -63,6 +80,7 @@ class GameGroup:
             turn_number += 1
             self.progress_printer.print_progress(len(finished_games) / number_of_games, turn_number,
                                                  turn_length_per_game_sec, step_statistics)
+            turn += 1
 
         avg_time_per_turn_per_game = sum_turn_length_sec / turn_number
         statistics.aggregate_game_length = self.get_aggregate_game_length(finished_games)

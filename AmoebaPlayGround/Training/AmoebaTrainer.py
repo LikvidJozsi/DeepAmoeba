@@ -92,7 +92,7 @@ class AmoebaTrainer:
 
         return dataset, statistics
 
-    def train(self, batch_size=1, batches_per_episode=1, view=None, num_episodes=1, use_quickstart_dataset=True):
+    def train(self, batch_size=1, view=None, num_episodes=1, use_quickstart_dataset=True):
         self.batch_size = batch_size
         self.view = view
 
@@ -120,14 +120,13 @@ class AmoebaTrainer:
             else:
                 for teacher_index, teaching_agent in enumerate(self.teaching_agents):
                     # print('Playing games against ' + teaching_agent.get_name())
-                    for game_batch_index in range(batches_per_episode):
-                        _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
-                            self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
+                    _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
+                        self.batch_size, self.learning_agent, teaching_agent, evaluation=False, print_progress=True)
 
-                        training_samples_from_agent.filter_samples(training_sample_entropy_cutoff,
-                                                                   training_sample_turn_cutoff)
-                        self.training_dataset_generator.add_episode(training_samples_from_agent)
-                        statistics.merge_statistics(group_statistics)
+                    training_samples_from_agent.filter_samples(training_sample_entropy_cutoff,
+                                                               training_sample_turn_cutoff)
+                    self.training_dataset_generator.add_episode(training_samples_from_agent)
+                    statistics.merge_statistics(group_statistics)
                     print('Average game length against %s: %f' % (
                         teaching_agent.get_name(), statistics.get_average_game_length()))
             self.learning_agent.get_neural_network_model().copy_weights_into(

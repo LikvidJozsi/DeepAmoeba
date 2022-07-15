@@ -41,9 +41,12 @@ class ParallelGameExecutor(GameExecutor):
         reference_agent_model = reference_agent.get_neural_network_model()
 
         inference_batch_size = learning_agent_model.inference_batch_size
-        per_worker_batch_size = inference_batch_size / worker_count * 2 * inference_server_count
+        tree_workers_per_inference_worker = worker_count / inference_server_count
+        per_worker_batch_size = inference_batch_size / tree_workers_per_inference_worker * 2
         print(f"{per_worker_batch_size} parallel searches per worker")
         self.printer_actor = ParallelProgressPrinterActor.remote(worker_count)
+        intra_game_parallelism = learning_agent.max_intra_game_parallelism
+        self.max_parallel_games = int(per_worker_batch_size / intra_game_parallelism)
 
         self.inference_servers = []
         for i in range(inference_server_count):
@@ -87,7 +90,8 @@ class ParallelGameExecutor(GameExecutor):
         original_agent_2 = agent_2
         agent_1 = self.replace_neural_agents_with_placeholders(agent_1)
         agent_2 = self.replace_neural_agents_with_placeholders(agent_2)
-        game_groups = self.generate_workloads(agent_1, agent_2, game_count, evaluation, print_progress)
+        game_groups = self.generate_workloads(agent_1, agent_2, game_count, self.max_parallel_games, evaluation,
+                                              print_progress)
 
         for inference_server in self.inference_servers:
             ray.get(inference_server.game_group_started.remote(self.workers_per_server))
@@ -121,13 +125,13 @@ class ParallelGameExecutor(GameExecutor):
             agent = PlaceholderAgent("reference_agent")
         return agent
 
-    def generate_workloads(self, agent_1, agent_2, game_count, evaluation, print_progress):
+    def generate_workloads(self, agent_1, agent_2, game_count, max_parallel_games, evaluation, print_progress):
         workloads = []
         games_per_group = max(1, int(game_count / self.worker_count))
         for _ in range(int(self.worker_count / 2)):
-            workloads.append((games_per_group, agent_1, agent_2, evaluation, False, print_progress))
+            workloads.append((games_per_group, max_parallel_games, agent_1, agent_2, evaluation, False, print_progress))
         for _ in range(int(self.worker_count / 2)):
-            workloads.append((games_per_group, agent_2, agent_1, evaluation, True, print_progress))
+            workloads.append((games_per_group, max_parallel_games, agent_2, agent_1, evaluation, True, print_progress))
         return workloads
 
 
@@ -141,7 +145,7 @@ class GameExecutorWorker:
         self.progress_printer = ParallelProgressPrinter(progress_printer_actor, self.id)
         self.move_selection_strategy = move_selection_strategy
 
-    def play_games_between_agents(self, game_count, agent_1, agent_2, evaluation,
+    def play_games_between_agents(self, game_count, max_parallel_games, agent_1, agent_2, evaluation,
                                   agent_order_reversed, print_progress):
 
         agent_1 = self.replace_placeholder_agent(agent_1)
@@ -155,7 +159,7 @@ class GameExecutorWorker:
         else:
             training_sample_generator_class = SymmetricTrainingSampleGenerator
 
-        game_group = GameGroup(game_count, agent_1, agent_2,
+        game_group = GameGroup(game_count, max_parallel_games, agent_1, agent_2,
                                training_sample_generator_class=training_sample_generator_class,
                                move_selection_strategy=self.move_selection_strategy, evaluation=evaluation,
                                reversed_agent_order=agent_order_reversed,

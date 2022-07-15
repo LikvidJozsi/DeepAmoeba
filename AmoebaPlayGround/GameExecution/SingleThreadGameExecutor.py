@@ -55,11 +55,17 @@ class SingleThreadGameExecutor(GameExecutor):
         else:
             progress_printer = BaseProgressPrinter()
 
+        inference_batch_size = agent_1.get_neural_network_model().inference_batch_size
+        intra_game_parallelism = agent_1.max_intra_game_parallelism
+        max_parallel_games = int(inference_batch_size / intra_game_parallelism)
+
         time_before_play = time.perf_counter()
-        game_group_1 = GameGroup(games_per_group, agent_1, agent_2, None, progress_printer=progress_printer,
+        game_group_1 = GameGroup(games_per_group, max_parallel_games, agent_1, agent_2, None,
+                                 progress_printer=progress_printer,
                                  training_sample_generator_class=training_sample_generator_class,
                                  move_selection_strategy=self.move_selection_strategy, evaluation=evaluation)
-        game_group_2 = GameGroup(games_per_group, agent_2, agent_1, None, progress_printer=progress_printer,
+        game_group_2 = GameGroup(games_per_group, max_parallel_games, agent_2, agent_1, None,
+                                 progress_printer=progress_printer,
                                  training_sample_generator_class=training_sample_generator_class,
                                  move_selection_strategy=self.move_selection_strategy, evaluation=evaluation,
                                  reversed_agent_order=True)
