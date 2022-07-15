@@ -60,7 +60,7 @@ class NeuralNetworkModel(ABC):
         self.model = tf.keras.models.load_model(latest_model_file)
 
     def load_model(self, model_name):
-        return tf.keras.models.load_model(get_model_file_path(model_name))
+        self.model = tf.keras.models.load_model(get_model_file_path(model_name))
 
     @abstractmethod
     def create_model(self):

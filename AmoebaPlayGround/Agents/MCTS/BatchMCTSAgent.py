@@ -143,18 +143,22 @@ class BatchMCTSAgent(MCTSAgent):
         leaf_nodes = []
         last_players = []
         positions_to_search = sorted(positions_to_search, key=lambda x: x.searches_remaining, reverse=True)
+
         while len(paths) < self.search_batch_size and len(positions_to_search) > 0:
             remaining_positions_to_search = []
             for position in positions_to_search:
-                path, end_node, end_player, can_continue_search = self.run_selection_for_node(position, player)
-                if path is not None:
-                    paths.append(path)
-                    leaf_nodes.append(end_node)
-                    last_players.append(end_player)
-                    if len(paths) >= self.search_batch_size:
-                        break
-                if can_continue_search:
-                    remaining_positions_to_search.append(position)
+                for _ in range(self.max_intra_game_parallelism):
+                    path, end_node, end_player, can_continue_search = self.run_selection_for_node(position, player)
+                    if path is not None:
+                        paths.append(path)
+                        leaf_nodes.append(end_node)
+                        last_players.append(end_player)
+                        if len(paths) >= self.search_batch_size:
+                            break
+                    if can_continue_search:
+                        remaining_positions_to_search.append(position)
+                if len(paths) >= self.search_batch_size:
+                    break
 
             positions_to_search = remaining_positions_to_search
 

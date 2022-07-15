@@ -20,8 +20,10 @@ game_executor = ParallelGameExecutor(neural_agent, neural_agent, worker_count=18
 
 sample_collection = TrainingSampleCollection()
 self_play_statistics = Statistics()
+game_count = 4500
+# game_count = 120
 for i in range(1):
-    _, training_samples, staticsitcs = game_executor.play_games_between_agents(4500, neural_agent, neural_agent,
+    _, training_samples, staticsitcs = game_executor.play_games_between_agents(game_count, neural_agent, neural_agent,
                                                                                evaluation=False,
                                                                                print_progress=True)
     sample_collection.extend(training_samples)

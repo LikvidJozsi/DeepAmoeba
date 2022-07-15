@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 
 from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMBOL
+from AmoebaPlayGround.GameEndChecker import check_victory_condition
 from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 game_id_counter = 0
@@ -126,7 +127,8 @@ class AmoebaGame:
         if len(self.history) == 0:
             return False
         last_action = self.history[-1]
-        player_won, is_draw = AmoebaGame.check_game_ended(self.map, last_action)
+        player_won = check_victory_condition(self.map.cells, np.array(last_action, dtype=int))
+        is_draw = self.map.occupied_cells == np.prod(self.map.cells.shape)
         if player_won:
             self.winner = self.previous_player
         if is_draw:
@@ -137,103 +139,6 @@ class AmoebaGame:
 
     @staticmethod
     def check_game_ended(game_board: AmoebaBoard, move):
-        player_symbol = game_board.get(move)
-        player_won = (
-                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol, move, [1, 0]) or  # vertical
-                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol, move, [1, 1]) or  # diagonal1
-                AmoebaGame.is_there_winning_line_in_direction(game_board, player_symbol, move, [0, 1]) or  # horizontal
-                AmoebaGame.is_there_winning_line_in_reverse_diagonal(game_board, player_symbol, move))  # diagonal2
-        is_draw = False
-        if not player_won:
-            is_draw = AmoebaGame.is_map_full(game_board)
-        return player_won, is_draw
-
-    @staticmethod
-    def is_map_full(game_board):
-        return not EMPTY_SYMBOL in game_board.cells
-
-    @staticmethod
-    def is_there_winning_line_in_direction(game_board, player_symbol, move, dir_vector):
-        # ....x....
-        # only 4 places in each direction count in determining if the new move created a winning condition of
-        # a five figure long line
-
-        max_distance = win_sequence_length - 1
-        max_x_neg_offset = AmoebaGame.get_maximum_negative_offset(move[0], dir_vector[0], max_distance)
-        max_y_neg_offset = AmoebaGame.get_maximum_negative_offset(move[1], dir_vector[1], max_distance)
-        max_neg_offset = min(max_x_neg_offset, max_y_neg_offset)
-
-        board_size = game_board.get_shape()
-        max_x_pos_offset = AmoebaGame.get_maximum_positive_offset(move[0], dir_vector[0], max_distance, board_size[0])
-        max_y_pos_offset = AmoebaGame.get_maximum_positive_offset(move[1], dir_vector[1], max_distance, board_size[1])
-        max_pos_offset = min(max_x_pos_offset, max_y_pos_offset)
-
-        line_length = 0
-        for offset in range(1, max_pos_offset + 1):
-            # depending on the direction of the line being searched direction may be 0 meaning the coordinate does
-            # not change on any iterations
-            x = move[0] + offset * dir_vector[0]
-            y = move[1] + offset * dir_vector[1]
-            if game_board.get((x, y)) == player_symbol:
-                line_length += 1
-            else:
-                break
-
-        for offset in range(-1, -max_neg_offset - 1, -1):
-            # depending on the direction of the line being searched direction may be 0 meaning the coordinate does
-            # not change on any iterations
-            x = move[0] + offset * dir_vector[0]
-            y = move[1] + offset * dir_vector[1]
-            if game_board.get((x, y)) == player_symbol:
-                line_length += 1
-            else:
-                break
-
-        return line_length >= win_sequence_length - 1
-
-    @staticmethod
-    def is_there_winning_line_in_reverse_diagonal(game_board, player_symbol, move):
-        # in the reverse diagonal
-        # ........x
-        # .......x.
-        # ......x..
-        # .....x...
-        # ....x....
-        # one of the coordinates increases while to other decreases, so the boundary conditions get switched up
-
-        board_size = game_board.get_shape()
-        max_distance = win_sequence_length - 1
-        max_x_neg_offset = AmoebaGame.get_maximum_negative_offset(move[0], 1, max_distance)
-        max_y_pos_offset = AmoebaGame.get_maximum_positive_offset(move[1], 1, max_distance, board_size[1])
-        max_neg_offset = min(max_x_neg_offset, max_y_pos_offset)
-
-        max_x_pos_offset = AmoebaGame.get_maximum_positive_offset(move[0], 1, max_distance, board_size[0])
-        max_y_neg_offset = AmoebaGame.get_maximum_negative_offset(move[1], 1, max_distance)
-        max_pos_offset = min(max_x_pos_offset, max_y_neg_offset)
-
-        line_length = 0
-        for offset in range(1, max_pos_offset + 1):
-            x = move[0] + offset
-            y = move[1] - offset
-            if game_board.get((x, y)) == player_symbol:
-                line_length += 1
-            else:
-                break
-
-        for offset in range(-1, - max_neg_offset - 1, -1):
-            x = move[0] + offset
-            y = move[1] - offset
-            if game_board.get((x, y)) == player_symbol:
-                line_length += 1
-            else:
-                break
-
-        return line_length >= win_sequence_length - 1
-
-    @staticmethod
-    def get_maximum_negative_offset(move_coordinate, line_direction, max_search_distance):
-        return max_search_distance - max(max_search_distance * line_direction - move_coordinate, 0)
-
-    @staticmethod
-    def get_maximum_positive_offset(move_coordinate, line_direction, max_search_distance, map_length):
-        return max_search_distance - max(max_search_distance * line_direction + move_coordinate - map_length + 1, 0)
+        return check_victory_condition(game_board.cells,
+                                       np.array(move, dtype=int)), game_board.occupied_cells == np.prod(
+            game_board.cells.shape)

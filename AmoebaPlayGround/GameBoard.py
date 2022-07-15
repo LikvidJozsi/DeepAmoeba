@@ -42,11 +42,12 @@ class BoardIterator:
 
 
 class AmoebaBoard:
-    def __init__(self, size=None, cells=None):
+    def __init__(self, size=None, cells=None, occupied_cells=0):
         if cells is None:
-            self.cells = np.zeros(size, dtype=np.int8)
+            self.cells = np.zeros(size, dtype=np.uint8)
         else:
             self.cells = cells
+        self.occupied_cells = occupied_cells
 
     def __iter__(self):
         return BoardIterator(self)
@@ -56,6 +57,7 @@ class AmoebaBoard:
 
     def set(self, index, content):
         self.cells[index] = content
+        self.occupied_cells += 1
 
     def get(self, index):
         return self.cells[index]
@@ -96,4 +98,4 @@ class AmoebaBoard:
 
     def copy(self):
         copied_cells = self.cells.copy()
-        return AmoebaBoard(self.get_shape(), copied_cells)
+        return AmoebaBoard(self.get_shape(), copied_cells, self.occupied_cells)

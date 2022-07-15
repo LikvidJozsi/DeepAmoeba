@@ -4,7 +4,7 @@ from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.TensorflowModels import ResNetLike
 from AmoebaPlayGround.Training.AmoebaTrainer import AmoebaTrainer
 
-Amoeba.map_size = (8, 8)
+Amoeba.map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 
 neural_network_model = ResNetLike(Amoeba.map_size, network_depth=6, training_batch_size=32,
@@ -22,4 +22,4 @@ trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True,
                         training_sample_turn_cutoff_schedule=[(0, 10000), (1, 10000)],
                         resume_previous_training=False,
                         sample_episode_window_width_schedule=[(0, 1), (2, 2), (5, 4), (8, 6)])
-trainer.train(batch_size=1440, batches_per_episode=1, num_episodes=30, use_quickstart_dataset=False)
+trainer.train(batch_size=1440, batches_per_episode=1, num_episodes=30, use_quickstart_dataset=True)
