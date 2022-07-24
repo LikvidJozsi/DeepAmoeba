@@ -22,4 +22,4 @@ trainer = AmoebaTrainer(learning_agent, teaching_agents=[], self_play=True,
                         training_sample_turn_cutoff_schedule=[(0, 10000), (1, 10000)],
                         resume_previous_training=False,
                         sample_episode_window_width_schedule=[(0, 1), (2, 2), (5, 4), (8, 6)])
-trainer.train(batch_size=1440, batches_per_episode=1, num_episodes=30, use_quickstart_dataset=True)
+trainer.train(batch_size=1440, num_episodes=30, use_quickstart_dataset=True)
