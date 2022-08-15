@@ -23,7 +23,14 @@ class MCTSAgent(AmoebaAgent, ABC):
         self.exploration_rate = exploration_rate
         self.training_epochs = training_epochs
         self.dirichlet_ratio = dirichlet_ratio
+        self.evaluation = False
         self.training_dataset_max_size = training_dataset_max_size
+
+    def set_training_mode(self):
+        self.evaluation = False
+
+    def set_evaluation_mode(self):
+        self.evaluation = True
 
     def get_neural_network_model(self):
         return self.model
@@ -36,9 +43,9 @@ class MCTSAgent(AmoebaAgent, ABC):
                                       training_dataset_max_size=self.training_dataset_max_size)
         return new_instance
 
-    def get_root_nodes(self, search_trees, games, evaluation):
+    def get_root_nodes(self, search_trees, games):
         nodes = []
-        if evaluation:
+        if self.evaluation:
             eps = 0
         else:
             eps = self.dirichlet_ratio

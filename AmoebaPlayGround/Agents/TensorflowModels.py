@@ -3,7 +3,6 @@ import os
 from abc import ABC, abstractmethod
 from typing import List
 
-import ray
 import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
@@ -48,7 +47,6 @@ class NeuralNetworkSkeleton:
 class NeuralNetworkModel(ABC):
     def __init__(self, map_size, training_batch_size=100, training_epochs=10, inference_batch_size=400):
         self.map_size = map_size
-        self.copy_setter_methods: List = []
         self.training_batch_size = training_batch_size
         self.inference_batch_size = inference_batch_size
         self.training_epochs = training_epochs
@@ -74,9 +72,6 @@ class NeuralNetworkModel(ABC):
         new_instance = self.get_skeleton()
         return new_instance.resurrect_neural_network()
 
-    def add_synchronized_copy(self, copy):
-        self.copy_setter_methods.append(copy)
-
     def save(self, model_name):
         self.model.save(get_model_file_path(model_name))
 
@@ -85,15 +80,6 @@ class NeuralNetworkModel(ABC):
 
     def set_weights(self, weights):
         self.model.set_weights(weights)
-        self.distribute_weights()
-
-    def distribute_weights(self):
-        weights = self.get_weights()
-        operations = []
-        for copy_method in self.copy_setter_methods:
-            operations.append(copy_method.remote(weights))
-        for operation in operations:
-            ray.get(operation)
 
     def copy_weights_into(self, agent_to_copy_into):
         agent_to_copy_into.set_weights(self.get_weights())

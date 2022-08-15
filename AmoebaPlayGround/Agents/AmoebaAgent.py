@@ -9,7 +9,7 @@ from AmoebaPlayGround.Training.Logger import Statistics
 
 
 class AmoebaAgent:
-    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
+    def get_step(self, games: List[AmoebaGame], player):
         pass
 
     def train(self, training_samples: List):
@@ -22,6 +22,12 @@ class AmoebaAgent:
         return 'Default Name'
 
     def reset(self):
+        pass
+
+    def set_training_mode(self):
+        pass
+
+    def set_evaluation_mode(self):
         pass
 
     def get_random_start(self, board):
@@ -42,7 +48,7 @@ class PlaceholderAgent(AmoebaAgent):
 
 
 class ConsoleAgent(AmoebaAgent):
-    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
+    def get_step(self, games: List[AmoebaGame], player):
         game_boards = [game.map for game in games]
         answers = np.zeros((len(game_boards), 2), dtype=np.int8)
         print('You are ' + str(player))
@@ -61,7 +67,7 @@ class RandomAgent(AmoebaAgent):
     def __init__(self, move_max_distance=2):
         self.max_move_distance = move_max_distance
 
-    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
+    def get_step(self, games: List[AmoebaGame], player):
         steps = []
         for game in games:
             if game.num_steps > 0:

@@ -28,19 +28,16 @@ class InferenceServer:
         self.worker_count = None
         self.prediction_completion_condition = asyncio.Condition()
         self.results = {}
-        self.models = {"learning_agent": learning_agent_skeleton.resurrect_neural_network(),
-                       "reference_agent": reference_agent_skeleton.resurrect_neural_network()}
-        self.previous_model = "learning_agent"
-        self.requests = {"learning_agent": {}, "reference_agent": {}}
+        self.models = {"agent_1": learning_agent_skeleton.resurrect_neural_network(),
+                       "agent_2": reference_agent_skeleton.resurrect_neural_network()}
+        self.previous_model = "agent_1"
+        self.requests = {"agent_1": {}, "agent_2": {}}
         self.batch_size = None
         self.request_id_counter = 0
         self.processing = False
 
-    def set_learning_agent_weights(self, weights):
-        self.models["learning_agent"].set_weights(weights)
-
-    def set_reference_agent_weights(self, weights):
-        self.models["reference_agent"].set_weights(weights)
+    def set_agent_weights(self, agent_name, weights):
+        self.models[agent_name].set_weights(weights)
 
     async def game_group_started(self, worker_count):
         self.update_worker_count(worker_count)

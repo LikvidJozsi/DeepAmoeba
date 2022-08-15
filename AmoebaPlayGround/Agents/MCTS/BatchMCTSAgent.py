@@ -64,17 +64,18 @@ class BatchMCTSAgent(MCTSAgent):
                               dirichlet_ratio=self.dirichlet_ratio, tree_type=self.tree_type, map_size=self.map_size,
                               max_intra_game_parallelism=self.max_intra_game_parallelism,
                               virtual_loss=self.virtual_loss,
-                              training_dataset_max_size=self.training_dataset_max_size)
+                              training_dataset_max_size=self.training_dataset_max_size,
+                              search_batch_size=self.search_batch_size)
 
     def get_copy(self):
         new_instance = self.get_copy_without_model()
         new_instance.model = self.model.get_copy()
         return new_instance
 
-    def get_step(self, games: List[AmoebaGame], player, evaluation=False):
+    def get_step(self, games: List[AmoebaGame], player):
         search_trees = self.get_search_trees_for_games(games)
         self.reset_statistics()
-        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, games, evaluation)
+        positions_to_search, finished_positions = self.get_positions_to_search(search_trees, games)
 
         while len(positions_to_search) > 0:
             paths, leaf_nodes, last_players = self.run_selection(positions_to_search, player)
@@ -113,8 +114,8 @@ class BatchMCTSAgent(MCTSAgent):
                 position_to_search.new_batch_started()
         return remaining_postions_to_search
 
-    def get_positions_to_search(self, search_trees, games, evaluation):
-        search_nodes = self.get_root_nodes(search_trees, games, evaluation)
+    def get_positions_to_search(self, search_trees, games):
+        search_nodes = self.get_root_nodes(search_trees, games)
         positions_to_search = []
         finished_placeholders = []
         id_counter = 0

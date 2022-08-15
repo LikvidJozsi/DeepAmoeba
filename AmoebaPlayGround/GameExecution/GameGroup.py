@@ -10,7 +10,7 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
 class GameGroup:
     def __init__(self, total_game_count, batch_size, x_agent=None, o_agent=None,
                  training_sample_generator_class=SymmetricTrainingSampleGenerator,
-                 move_selection_strategy=MoveSelectionStrategy(), evaluation=False, reversed_agent_order=False,
+                 move_selection_strategy=MoveSelectionStrategy(), reversed_agent_order=False,
                  progress_printer=BaseProgressPrinter()):
         self.reversed_agent_order = reversed_agent_order
         self.x_agent = x_agent
@@ -19,7 +19,6 @@ class GameGroup:
         self.games = []
         self.move_selection_strategy = move_selection_strategy
         self.training_sample_generators = []
-        self.evaluation = evaluation
         self.total_game_count = total_game_count
         self.training_sample_generator_class = training_sample_generator_class
         self.batch_size = batch_size
@@ -50,9 +49,9 @@ class GameGroup:
             # same time, therfore getting the agent of any of them is enough
             action_probabilities, step_statistics, calculation_time = self.calculate_action_probabilities(next_agent)
             self.make_moves(action_probabilities, turn)
-            self.games = self.filter_active_games()
             turn_length_per_game_sec = calculation_time / len(self.games)
             sum_turn_length_sec += turn_length_per_game_sec
+            self.games = self.filter_active_games()
             self.progress_printer.print_progress(len(self.finished_games) / number_of_games, turn,
                                                  turn_length_per_game_sec, step_statistics)
             turn += 1
@@ -69,8 +68,7 @@ class GameGroup:
 
     def calculate_action_probabilities(self, next_agent):
         time_before_step = time.perf_counter()
-        action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player(),
-                                                                    self.evaluation)
+        action_probabilities, step_statistics = next_agent.get_step(self.games, self.games[0].get_next_player())
         self.statistics.merge_statistics(step_statistics)
         time_after_step = time.perf_counter()
         caluclation_duration = time_after_step - time_before_step
@@ -80,7 +78,7 @@ class GameGroup:
         for game, training_sample_generator, action_probability_map in zip(self.games,
                                                                            self.training_sample_generators,
                                                                            action_probabilities):
-            action = self.move_selection_strategy.get_move_selector(turn, self.evaluation).select_move(
+            action = self.move_selection_strategy.get_move_selector(turn).select_move(
                 action_probability_map)
             training_sample_generator.add_move(game.get_board_of_next_player(), action_probability_map,
                                                game.get_next_player())

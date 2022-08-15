@@ -41,8 +41,8 @@ class MoveSelectionStrategy:
         self.late_game_move_selector = late_game_move_selector
         self.late_game_start_turn = late_game_start_turn
 
-    def get_move_selector(self, turn, evaluation):
-        if turn >= self.late_game_start_turn or evaluation:
+    def get_move_selector(self, turn):
+        if turn >= self.late_game_start_turn:
             return self.late_game_move_selector
         else:
             return self.early_game_move_selector
@@ -55,7 +55,7 @@ class EvaluationMoveSelectionStrategy:
         self.late_game_move_selector = late_game_move_selector
         self.late_game_start_turn = late_game_start_turn
 
-    def get_move_selector(self, turn, evaluation):
+    def get_move_selector(self, turn):
         if turn >= self.late_game_start_turn:
             return self.late_game_move_selector
         else:
