@@ -10,7 +10,6 @@ from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 game_id_counter = 0
 win_sequence_length = 5
-map_size = (8, 8)
 
 
 class Move:
@@ -21,7 +20,7 @@ class Move:
 
 
 class AmoebaGame:
-    def __init__(self, view=None, board_state=None, play_first_move=True):
+    def __init__(self, map_size, view=None, board_state=None, play_first_move=True):
         global game_id_counter
         self.view = view
         if len(map_size) != 2:

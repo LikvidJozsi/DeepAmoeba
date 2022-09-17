@@ -12,6 +12,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers import Dropout, LeakyReLU
 from tensorflow.python.keras.regularizers import l2
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection, TrainingDatasetGenerator
 
 models_folder = 'Models/'
 
@@ -45,11 +46,14 @@ class NeuralNetworkSkeleton:
 
 
 class NeuralNetworkModel(ABC):
-    def __init__(self, map_size, training_batch_size=100, training_epochs=10, inference_batch_size=400):
+    def __init__(self, map_size, training_dataset_max_size, training_batch_size=100, training_epochs=10,
+                 inference_batch_size=400):
+
         self.map_size = map_size
         self.training_batch_size = training_batch_size
         self.inference_batch_size = inference_batch_size
         self.training_epochs = training_epochs
+        self.training_dataset_max_size = training_dataset_max_size
         self.model = None
 
     def load_latest_model(self):
@@ -99,14 +103,11 @@ class NeuralNetworkModel(ABC):
         numeric_representation = np.stack([own_pieces, opponent_pieces], axis=3)
         return numeric_representation
 
-    def train(self, inputs, output_policies, output_values, validation_dataset):
-        '''if validation_dataset is not None:
-            validation_input = self.format_input(validation_dataset.board_states)
-            validation_output_policies = np.array(validation_dataset.move_probabilities)
-            validation_output_policies = validation_output_policies.reshape(validation_output_policies.shape[0], -1)
-            validation_output_values = np.array(validation_dataset.rewards)
-            validation_dataset = (validation_input, [validation_output_policies, validation_output_values])'''
-
+    def train(self, dataset_generator: TrainingDatasetGenerator,
+              validation_dataset: TrainingSampleCollection = None):
+        print('number of training samples: ' + str(dataset_generator.get_sample_count()))
+        inputs, output_policies, output_values = dataset_generator.get_dataset(self.training_dataset_max_size)
+        output_policies = output_policies.reshape(output_policies.shape[0], -1)
         return self.model.fit(x=inputs, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
                               verbose=1, batch_size=self.training_batch_size)
 
@@ -124,11 +125,13 @@ class PolicyValueNeuralNetwork(NeuralNetworkModel):
     def __init__(self, map_size, first_convolution_size=(9, 9), dropout=0.0, reg=1e-3,
                  training_epochs=10,
                  training_batch_size=16,
-                 inference_batch_size=400):
+                 inference_batch_size=400,
+                 training_dataset_max_size=600000):
         self.first_convolution_size = first_convolution_size
         self.dropout = dropout
         self.reg = reg
-        super().__init__(map_size, training_batch_size, training_epochs, inference_batch_size)
+        super().__init__(map_size, training_dataset_max_size, training_batch_size, training_epochs,
+                         inference_batch_size)
 
     def get_skeleton(self):
         config = {"map_size": self.map_size,
@@ -163,10 +166,11 @@ class PolicyValueNeuralNetwork(NeuralNetworkModel):
 
 class ResNetLike(NeuralNetworkModel):
     def __init__(self, map_size, network_depth=8, reg=0.000001, training_epochs=12, training_batch_size=16,
-                 inference_batch_size=400):
+                 inference_batch_size=400, training_dataset_max_size=600000):
         self.network_depth = network_depth
         self.reg = reg
-        super().__init__(map_size, training_batch_size, training_epochs, inference_batch_size)
+        super().__init__(map_size, training_dataset_max_size, training_batch_size, training_epochs,
+                         inference_batch_size)
 
     def get_skeleton(self):
         config = {"map_size": self.map_size,

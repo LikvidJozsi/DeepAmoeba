@@ -1,7 +1,7 @@
 import pickle
 
 from AmoebaPlayGround import Amoeba
-from AmoebaPlayGround.Agents.MCTS.BatchMCTSAgent import BatchMCTSAgent
+from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.TensorflowModels import ResNetLike
 from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
@@ -12,9 +12,9 @@ Amoeba.map_size = (15, 15)
 neural_network_model = ResNetLike(Amoeba.map_size, network_depth=6, training_batch_size=32,
                                   inference_batch_size=6000)
 neural_network_model.create_model()
-neural_agent = BatchMCTSAgent(model=neural_network_model, search_batch_size=300,
-                              map_size=Amoeba.map_size,
-                              max_intra_game_parallelism=8, tree_type=MCTSTree)
+neural_agent = MCTSAgent(model=neural_network_model, search_batch_size=300,
+                         map_size=Amoeba.map_size,
+                         max_intra_game_parallelism=8, tree_type=MCTSTree)
 game_executor = ParallelGameExecutor(neural_agent, neural_agent, worker_count=18, inference_server_count=3)
 # game_executor = SingleThreadGameExecutor()
 

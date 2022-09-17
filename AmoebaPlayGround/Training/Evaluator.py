@@ -22,13 +22,13 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, game_executor, evaluation_match_count=128, puzzle_variation_count=50,
+    def __init__(self, game_executor, map_size, evaluation_match_count=128, puzzle_variation_count=50,
                  log_file=None):
         self.game_executor = game_executor
         self.reference_agent = None
         self.reference_agent_rating = None
         self.evaluation_match_count = evaluation_match_count + evaluation_match_count % 2
-        self.puzzle_evaluator = PuzzleEvaluator(puzzle_variation_count)
+        self.puzzle_evaluator = PuzzleEvaluator(puzzle_variation_count, map_size)
 
     def evaluate_agent(self, agent: AmoebaAgent, logger):
         self.evaluate_against_fixed_references(agent, logger)
@@ -77,4 +77,3 @@ class EloEvaluator(Evaluator):
     def set_reference_agent(self, agent: AmoebaAgent, rating=1000):
         self.reference_agent = agent
         self.reference_agent_rating = rating
-

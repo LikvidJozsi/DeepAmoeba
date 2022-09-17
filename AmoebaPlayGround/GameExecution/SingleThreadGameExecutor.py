@@ -10,7 +10,7 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import PlaceholderTrainin
 
 class GameExecutor:
 
-    def play_games_between_agents(self, game_count, agent_1, agent_2, evaluation, print_progress):
+    def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation, print_progress):
         pass
 
     def merge_results(self, game_group_results):
@@ -42,7 +42,7 @@ class SingleThreadGameExecutor(GameExecutor):
     def __init__(self, move_selection_strategy=MoveSelectionStrategy()):
         self.move_selection_strategy = move_selection_strategy
 
-    def play_games_between_agents(self, game_count, agent_1, agent_2, evaluation=False,
+    def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation=False,
                                   print_progress=True):
         games_per_group = max(1, int(game_count / 2))
         if evaluation:
@@ -60,14 +60,14 @@ class SingleThreadGameExecutor(GameExecutor):
         max_parallel_games = int(inference_batch_size / intra_game_parallelism)
 
         time_before_play = time.perf_counter()
-        game_group_1 = GameGroup(games_per_group, max_parallel_games, agent_1, agent_2, None,
+        game_group_1 = GameGroup(games_per_group, max_parallel_games, map_size, agent_1, agent_2,
                                  progress_printer=progress_printer,
                                  training_sample_generator_class=training_sample_generator_class,
-                                 move_selection_strategy=self.move_selection_strategy, evaluation=evaluation)
-        game_group_2 = GameGroup(games_per_group, max_parallel_games, agent_2, agent_1, None,
+                                 move_selection_strategy=self.move_selection_strategy)
+        game_group_2 = GameGroup(games_per_group, max_parallel_games, map_size, agent_2, agent_1,
                                  progress_printer=progress_printer,
                                  training_sample_generator_class=training_sample_generator_class,
-                                 move_selection_strategy=self.move_selection_strategy, evaluation=evaluation,
+                                 move_selection_strategy=self.move_selection_strategy,
                                  reversed_agent_order=True)
 
         if print_progress:

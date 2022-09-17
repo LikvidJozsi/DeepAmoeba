@@ -8,7 +8,7 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
 
 
 class GameGroup:
-    def __init__(self, total_game_count, batch_size, x_agent=None, o_agent=None,
+    def __init__(self, total_game_count, batch_size, map_size, x_agent=None, o_agent=None,
                  training_sample_generator_class=SymmetricTrainingSampleGenerator,
                  move_selection_strategy=MoveSelectionStrategy(), reversed_agent_order=False,
                  progress_printer=BaseProgressPrinter()):
@@ -28,7 +28,7 @@ class GameGroup:
         if self.total_game_count < batch_size:
             batch_size = self.total_game_count
         for index in range(batch_size):
-            self.games.append(AmoebaGame())
+            self.games.append(AmoebaGame(map_size))
             self.training_sample_generators.append(training_sample_generator_class())
 
     def set_x_agent(self, x_agent):

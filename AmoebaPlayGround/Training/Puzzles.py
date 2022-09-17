@@ -4,7 +4,6 @@ import random
 
 import numpy as np
 
-from AmoebaPlayGround import Amoeba
 from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Amoeba import AmoebaGame
@@ -14,7 +13,7 @@ from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
 class Puzzle:
 
-    def __init__(self, json_representation, variation_count_target):
+    def __init__(self, json_representation, variation_count_target, map_size):
         self.board_state = np.array(json_representation["board_state"])
         self.solutions = json_representation["correct_moves"]
         self.extra_prohibited_filler_places = json_representation["extra_prohibited_filler_places"]
@@ -22,10 +21,10 @@ class Puzzle:
         self.value_expected = json_representation["value_expected"]
         self.board_state_variations = []
         self.solution_variations = []
-        self.generate_variations(variation_count_target)
+        self.generate_variations(variation_count_target, map_size)
 
-    def generate_variations(self, variation_count_target):
-        map_size = np.array(Amoeba.map_size)
+    def generate_variations(self, variation_count_target, map_size):
+        map_size = np.array(map_size)
         rotated_state = self.board_state
         rotated_solutions = self.solutions
         rotated_prohibited_spaces = self.extra_prohibited_filler_places
@@ -62,7 +61,7 @@ class Puzzle:
         translated_board_state = np.zeros(map_size, dtype=np.int8)
         translated_board_state[translation[0]:(translation[0] + board_state.shape[0]),
         translation[1]:(translation[1] + board_state.shape[1])] = board_state
-        return AmoebaGame(board_state=translated_board_state)
+        return AmoebaGame(map_size, board_state=translated_board_state)
 
     def equalize_pieces(self, board_state, solutions, prohibited_spaces):
         own_figure_count = np.count_nonzero(board_state.map.cells == 1)
@@ -97,25 +96,25 @@ class Puzzle:
 
 
 class PuzzleEvaluator:
-    def __init__(self, variation_count_target):
+    def __init__(self, variation_count_target, map_size):
         self.move_selector = MaximalMoveSelector()
         with open("Puzzles/level_1.json", "r") as file:
-            self.level_1 = self.load_puzzles(json.load(file), variation_count_target)
+            self.level_1 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
         with open("Puzzles/level_2.json", "r") as file:
-            self.level_2 = self.load_puzzles(json.load(file), variation_count_target)
+            self.level_2 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
         with open("Puzzles/level_3.json", "r") as file:
-            self.level_3 = self.load_puzzles(json.load(file), variation_count_target)
+            self.level_3 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
         with open("Puzzles/level_4.json", "r") as file:
-            self.level_4 = self.load_puzzles(json.load(file), variation_count_target)
+            self.level_4 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
         with open("Puzzles/level_5.json", "r") as file:
-            self.level_5 = self.load_puzzles(json.load(file), variation_count_target)
+            self.level_5 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
-    def load_puzzles(self, json_representation, variation_count_target):
-        return [Puzzle(json_repr, variation_count_target) for json_repr in json_representation]
+    def load_puzzles(self, json_representation, variation_count_target, map_size):
+        return [Puzzle(json_repr, variation_count_target, map_size) for json_repr in json_representation]
 
     def evaluate_agent(self, agent: AmoebaAgent, logger=None):
         self.evaluate_on_level(agent, logger, "level_1", self.level_1)
