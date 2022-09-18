@@ -1,7 +1,10 @@
 import asyncio
 import math
+from typing import Dict
 
 import ray
+
+from AmoebaPlayGround.Agents.TensorflowModels import NeuralNetworkModel
 
 
 class NetworkPredictor:
@@ -24,16 +27,16 @@ class InferenceServerWrapper(NetworkPredictor):
 
 @ray.remote
 class InferenceServer:
-    def __init__(self, learning_agent, reference_agent):
+    def __init__(self, models: Dict[str, NeuralNetworkModel]):
         self.worker_count = None
         self.prediction_completion_condition = asyncio.Condition()
         self.results = {}
-        learning_agent.unpack()
-        reference_agent.unpack()
-        self.models = {"agent_1": learning_agent,
-                       "agent_2": reference_agent}
-        self.previous_model = "agent_1"
-        self.requests = {"agent_1": {}, "agent_2": {}}
+        for agent in models.values():
+            agent.unpack()
+        self.models = models
+        self.requests = {}
+        for model_name in self.models:
+            self.requests[model_name] = {}
         self.batch_size = None
         self.request_id_counter = 0
         self.processing = False
@@ -79,8 +82,6 @@ class InferenceServer:
         return False
 
     def get_model_to_predict(self, minimum_threshold):
-        if len(self.requests[self.previous_model]) >= minimum_threshold:
-            return self.previous_model
         for model, requests in self.requests.items():
             if len(requests) >= minimum_threshold:
                 return model

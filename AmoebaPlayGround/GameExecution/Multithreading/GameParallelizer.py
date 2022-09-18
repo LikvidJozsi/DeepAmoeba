@@ -39,8 +39,8 @@ class ParallelGameExecutor(GameExecutor):
 
         self.inference_servers = []
         for i in range(inference_server_count):
-            inference_server = InferenceServer.remote(learning_agent.model.get_packed_copy(),
-                                                      reference_agent.model.get_packed_copy())
+            inference_server = InferenceServer.remote({"agent_1": learning_agent.model.get_packed_copy(),
+                                                       "agent_2": reference_agent.model.get_packed_copy()})
             self.inference_servers.append(inference_server)
         self.inference_server_pool = ActorPool(self.inference_servers)
 
