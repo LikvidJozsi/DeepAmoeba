@@ -9,7 +9,7 @@ from AmoebaPlayGround.Training.Logger import logs_folder
 
 list_of_files = glob.glob(os.path.join(logs_folder, '*.csv'))
 latest_file = max(list_of_files, key=os.path.getctime)
-df = pd.read_csv("Logs/2021-12-03_09-37-05.csv", sep=",")
+df = pd.read_csv("../Logs/2021-12-03_09-37-05.csv", sep=",")
 
 plt.plot(np.arange(len(df)), df['max_search_depth'], 'r', label="max_search_depth")
 plt.plot(np.arange(len(df)), df['avg_search_depth'], 'b', label="avg_search_depth")
