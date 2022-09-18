@@ -24,12 +24,14 @@ class InferenceServerWrapper(NetworkPredictor):
 
 @ray.remote
 class InferenceServer:
-    def __init__(self, learning_agent_skeleton, reference_agent_skeleton):
+    def __init__(self, learning_agent, reference_agent):
         self.worker_count = None
         self.prediction_completion_condition = asyncio.Condition()
         self.results = {}
-        self.models = {"agent_1": learning_agent_skeleton.resurrect_neural_network(),
-                       "agent_2": reference_agent_skeleton.resurrect_neural_network()}
+        learning_agent.unpack()
+        reference_agent.unpack()
+        self.models = {"agent_1": learning_agent,
+                       "agent_2": reference_agent}
         self.previous_model = "agent_1"
         self.requests = {"agent_1": {}, "agent_2": {}}
         self.batch_size = None

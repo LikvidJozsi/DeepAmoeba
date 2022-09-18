@@ -98,19 +98,19 @@ class Puzzle:
 class PuzzleEvaluator:
     def __init__(self, variation_count_target, map_size):
         self.move_selector = MaximalMoveSelector()
-        with open("Puzzles/level_1.json", "r") as file:
+        with open("../Puzzles/level_1.json", "r") as file:
             self.level_1 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
-        with open("Puzzles/level_2.json", "r") as file:
+        with open("../Puzzles/level_2.json", "r") as file:
             self.level_2 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
-        with open("Puzzles/level_3.json", "r") as file:
+        with open("../Puzzles/level_3.json", "r") as file:
             self.level_3 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
-        with open("Puzzles/level_4.json", "r") as file:
+        with open("../Puzzles/level_4.json", "r") as file:
             self.level_4 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
-        with open("Puzzles/level_5.json", "r") as file:
+        with open("../Puzzles/level_5.json", "r") as file:
             self.level_5 = self.load_puzzles(json.load(file), variation_count_target, map_size)
 
     def load_puzzles(self, json_representation, variation_count_target, map_size):

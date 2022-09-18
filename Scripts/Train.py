@@ -7,9 +7,9 @@ from AmoebaPlayGround.Training.AmoebaTrainer import AmoebaTrainer
 map_size = (15, 15)
 Amoeba.win_sequence_length = 5
 
-neural_network_model = ResNetLike(map_size, network_depth=6, training_batch_size=32,
+neural_network_model = ResNetLike(training_batch_size=32,
                                   inference_batch_size=8000, training_dataset_max_size=400000)
-neural_network_model.create_model()
+neural_network_model.create_model(map_size, network_depth=6)
 neural_network_model.print_model_summary()
 
 learning_agent = MCTSAgent(model=neural_network_model, search_count=600,

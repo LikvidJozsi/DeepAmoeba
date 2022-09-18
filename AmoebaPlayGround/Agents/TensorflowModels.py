@@ -1,8 +1,11 @@
+import copy
 import glob
+import io
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List
 
+import h5py
 import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
@@ -31,53 +34,76 @@ def get_model_file_path(model_name):
     return os.path.join(models_folder, model_name + '.h5')
 
 
-class NeuralNetworkSkeleton:
-
-    def __init__(self, network_class, config, weights):
-        self.network_class = network_class
-        self.config = config
-        self.weights = weights
-
-    def resurrect_neural_network(self):
-        network_object = self.network_class(**self.config)
-        network_object.create_model()
-        network_object.set_weights(self.weights)
-        return network_object
-
-
+# State machine diagram of a NeuralNetworkModel:
+#      created
+#         |
+#         | create_model or load_model or load_latest_model
+#         |  ⌜--------------⌝
+#         v  |              | load_weights
+#  unpacked/compiled <------⌟
+#        ^  | get_packed_copy
+# unpack |  v
+#       packed
+#
+#  created state  is the initial state with no initialized model (model is None and serialized model is None)
+#  unpacked/compiled state has its own compiled tensorflow model (model exists serialized_model is None)
+#  packed state has all the information but is not compiled, so it can be transported between processes (model is None and serialized_model exists)
 class NeuralNetworkModel(ABC):
-    def __init__(self, map_size, training_dataset_max_size, training_batch_size=100, training_epochs=10,
+    def __init__(self, training_dataset_max_size, training_batch_size=100, training_epochs=10,
                  inference_batch_size=400):
-
-        self.map_size = map_size
         self.training_batch_size = training_batch_size
         self.inference_batch_size = inference_batch_size
         self.training_epochs = training_epochs
         self.training_dataset_max_size = training_dataset_max_size
         self.model = None
+        self.serialized_model = None
 
+    # this is used to get a copy of a model that can be transported between processes,
+    # and can be recompiled using unpack
+    def get_packed_copy(self):
+        if self.model is None:
+            raise Exception("the model needs to be unpacked/compiled to be packed")
+        copied_model = copy.copy(self)
+        copied_model.model = None
+        h5_object = io.BytesIO()
+        with h5py.File(h5_object, "w") as f:
+            self.model.save(f)
+        copied_model.serialized_model = h5_object
+        return copied_model
+
+    # use to recompile a packed model, after which it can be used
+    def unpack(self):
+        if self.serialized_model is None:
+            raise Exception("you can only unpack a packed model")
+        with h5py.File(self.serialized_model) as f:
+            self.model = tf.keras.models.load_model(f)
+        self.serialized_model = None
+
+    # use if keeping the hyperparameters of the current compiled model object while getting the
+    # weights of another(compatible) model is desired
+    def load_weights(self, model_name):
+        if self.model is None:
+            raise Exception("the model needs to be unpacked/compiled to load weights")
+        loaded_model = tf.keras.models.load_model(get_model_file_path(model_name), compile=False)
+        self.model.set_weights(loaded_model.get_weights())
+
+    # use if the most recent saved model is needed (along with its hyperparameters, it will compile the loaded model
     def load_latest_model(self):
         latest_model_file = get_latest_model()
         print("\n\nLoading model contained in file: %s\n\n" % (latest_model_file))
         self.model = tf.keras.models.load_model(latest_model_file)
 
+    # load and compile any saved model
     def load_model(self, model_name):
         self.model = tf.keras.models.load_model(get_model_file_path(model_name))
 
-    @abstractmethod
-    def create_model(self):
-        pass
-
-    @abstractmethod
-    def get_skeleton(self):
-        pass
+    def save_model(self, model_name):
+        self.model.save(get_model_file_path(model_name))
 
     def get_copy(self):
-        new_instance = self.get_skeleton()
-        return new_instance.resurrect_neural_network()
-
-    def save(self, model_name):
-        self.model.save(get_model_file_path(model_name))
+        new_instance = self.get_packed_copy()
+        new_instance.unpack()
+        return new_instance
 
     def get_weights(self):
         return self.model.get_weights()
@@ -111,6 +137,7 @@ class NeuralNetworkModel(ABC):
         return self.model.fit(x=inputs, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
                               verbose=1, batch_size=self.training_batch_size)
 
+    # TODO this is amoeba specific, refactor
     def predict(self, board_states, players):
         board_size = board_states[0].shape
         input = self.format_input(board_states, players)
@@ -122,42 +149,29 @@ class NeuralNetworkModel(ABC):
 
 
 class PolicyValueNeuralNetwork(NeuralNetworkModel):
-    def __init__(self, map_size, first_convolution_size=(9, 9), dropout=0.0, reg=1e-3,
-                 training_epochs=10,
+    def __init__(self, training_epochs=10,
                  training_batch_size=16,
                  inference_batch_size=400,
                  training_dataset_max_size=600000):
-        self.first_convolution_size = first_convolution_size
-        self.dropout = dropout
-        self.reg = reg
-        super().__init__(map_size, training_dataset_max_size, training_batch_size, training_epochs,
+        super().__init__(training_dataset_max_size, training_batch_size, training_epochs,
                          inference_batch_size)
 
-    def get_skeleton(self):
-        config = {"map_size": self.map_size,
-                  "first_convolution_size": self.first_convolution_size,
-                  "dropout": self.dropout,
-                  "reg": self.reg,
-                  "training_epochs": self.training_epochs,
-                  "training_batch_size": self.training_batch_size}
-        return NeuralNetworkSkeleton(self.__class__, config, self.get_weights())
-
-    def create_model(self):
-        input = Input(shape=self.map_size + (2,))
+    def create_model(self, map_size, first_convolution_size=(9, 9), dropout=0.0, reg=1e-3, ):
+        input = Input(shape=map_size + (2,))
         conv_1 = Activation('relu')(
-            BatchNormalization(axis=3)(Conv2D(32, kernel_size=self.first_convolution_size, padding='same',
-                                              kernel_regularizer=l2(l2=self.reg))(input)))
+            BatchNormalization(axis=3)(Conv2D(32, kernel_size=first_convolution_size, padding='same',
+                                              kernel_regularizer=l2(l2=reg))(input)))
         conv_2 = Activation('relu')(BatchNormalization(axis=3)(
             Conv2D(64, kernel_size=(3, 3), strides=(2, 2), activation='relu', padding='same',
-                   kernel_regularizer=l2(l2=self.reg))(conv_1)))
+                   kernel_regularizer=l2(l2=reg))(conv_1)))
         conv_3 = Activation('relu')(
             BatchNormalization(axis=3)(Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same',
-                                              kernel_regularizer=l2(l2=self.reg))(conv_2)))
+                                              kernel_regularizer=l2(l2=reg))(conv_2)))
         flatten = Flatten()(conv_3)
-        dense_1 = Dropout(self.dropout)(Activation('relu')(Dense(256, kernel_regularizer=l2(l2=self.reg))(flatten)))
-        dense_2 = Dropout(self.dropout)(Activation('relu')(Dense(128, kernel_regularizer=l2(l2=self.reg))(dense_1)))
-        policy = Dense(np.prod(self.map_size), activation='softmax', kernel_regularizer=l2(l2=self.reg))(dense_1)
-        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg))(dense_2)
+        dense_1 = Dropout(dropout)(Activation('relu')(Dense(256, kernel_regularizer=l2(l2=reg))(flatten)))
+        dense_2 = Dropout(dropout)(Activation('relu')(Dense(128, kernel_regularizer=l2(l2=reg))(dense_1)))
+        policy = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=reg))(dense_1)
+        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=reg))(dense_2)
 
         model = Model(inputs=input, outputs=[policy, value])
         model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=Adam(learning_rate=0.001))
@@ -165,57 +179,47 @@ class PolicyValueNeuralNetwork(NeuralNetworkModel):
 
 
 class ResNetLike(NeuralNetworkModel):
-    def __init__(self, map_size, network_depth=8, reg=0.000001, training_epochs=12, training_batch_size=16,
+    def __init__(self, training_epochs=12, training_batch_size=16,
                  inference_batch_size=400, training_dataset_max_size=600000):
-        self.network_depth = network_depth
-        self.reg = reg
-        super().__init__(map_size, training_dataset_max_size, training_batch_size, training_epochs,
+        super().__init__(training_dataset_max_size, training_batch_size, training_epochs,
                          inference_batch_size)
 
-    def get_skeleton(self):
-        config = {"map_size": self.map_size,
-                  "network_depth": self.network_depth,
-                  "reg": self.reg,
-                  "training_epochs": self.training_epochs,
-                  "training_batch_size": self.training_batch_size}
-        return NeuralNetworkSkeleton(self.__class__, config, self.get_weights())
-
-    def create_model(self):
-        input = Input(shape=self.map_size + (2,))
-        conv_1 = self.conv_layer(input, 64, (3, 3))
+    def create_model(self, map_size, network_depth=8, reg=0.000001, learning_rate=0.003):
+        input = Input(shape=map_size + (2,))
+        conv_1 = self.conv_layer(input, 64, (3, 3), reg)
         current_network_end = conv_1
-        for index in range(self.network_depth):
-            current_network_end = self.identity_block(current_network_end, filters=[64, 64])
+        for index in range(network_depth):
+            current_network_end = self.identity_block(current_network_end, filters=[64, 64], reg=reg)
 
-        policy = self.get_policy_head(current_network_end, self.map_size)
-        value = self.get_value_head(current_network_end)
+        policy = self.get_policy_head(current_network_end, map_size, reg)
+        value = self.get_value_head(current_network_end, reg)
 
         model = Model(inputs=input, outputs=[policy, value])
-        optimizer = Adam(learning_rate=0.003)
+        optimizer = Adam(learning_rate=learning_rate)
         # optimizer = SGD(learning_rate=0.01)
         model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
         self.model = model
 
-    def get_value_head(self, feature_extractor):
-        dim_reducer_conv = self.conv_layer(feature_extractor, 2, (1, 1))
+    def get_value_head(self, feature_extractor, reg):
+        dim_reducer_conv = self.conv_layer(feature_extractor, 2, (1, 1), reg)
         flatten = Flatten()(dim_reducer_conv)
-        dense_1 = Dense(64, kernel_regularizer=l2(l2=self.reg))(flatten)
-        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=self.reg),
+        dense_1 = Dense(64, kernel_regularizer=l2(l2=reg))(flatten)
+        value = Dense(1, activation='tanh', kernel_regularizer=l2(l2=reg),
                       name="value")(dense_1)
         return value
 
-    def get_policy_head(self, feature_extractor, map_size):
-        conv_1 = self.conv_layer(feature_extractor, 64, (3, 3))
-        dimension_reducer_conv = self.conv_layer(conv_1, 2, (1, 1))
+    def get_policy_head(self, feature_extractor, map_size, reg):
+        conv_1 = self.conv_layer(feature_extractor, 64, (3, 3), reg)
+        dimension_reducer_conv = self.conv_layer(conv_1, 2, (1, 1), reg)
         flatten = Flatten()(dimension_reducer_conv)
-        dense_1 = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=self.reg),
+        dense_1 = Dense(np.prod(map_size), activation='softmax', kernel_regularizer=l2(l2=reg),
                         name="policy")(flatten)
         return dense_1
 
-    def identity_block(self, input, filters):
-        conv_1 = self.conv_layer(input, filters[0], (3, 3))
+    def identity_block(self, input, filters, reg):
+        conv_1 = self.conv_layer(input, filters[0], (3, 3), reg)
         conv_2 = Conv2D(filters=filters[1], kernel_size=(3, 3), data_format="channels_first", padding='same'
-                        , use_bias=False, activation='linear', kernel_regularizer=l2(l2=self.reg))(conv_1)
+                        , use_bias=False, activation='linear', kernel_regularizer=l2(l2=reg))(conv_1)
         batch_norm = BatchNormalization(axis=1)(conv_2)
 
         skip_connection = add([input, batch_norm])
@@ -223,9 +227,9 @@ class ResNetLike(NeuralNetworkModel):
         output = LeakyReLU()(skip_connection)
         return output
 
-    def conv_layer(self, input, filters, kernel_size):
+    def conv_layer(self, input, filters, kernel_size, reg):
         conv = Conv2D(filters=filters, kernel_size=kernel_size, data_format="channels_first", padding='same',
-                      use_bias=False, activation='linear', kernel_regularizer=l2(self.reg))(input)
+                      use_bias=False, activation='linear', kernel_regularizer=l2(reg))(input)
 
         batch_norm = BatchNormalization(axis=1)(conv)
         output = LeakyReLU()(batch_norm)
