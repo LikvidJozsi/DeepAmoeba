@@ -218,7 +218,7 @@ class ResNetLike(NeuralNetworkModel):
 
     def identity_block(self, input, filters, reg):
         conv_1 = self.conv_layer(input, filters[0], (3, 3), reg)
-        conv_2 = Conv2D(filters=filters[1], kernel_size=(3, 3), data_format="channels_first", padding='same'
+        conv_2 = Conv2D(filters=filters[1], kernel_size=(3, 3), data_format="channels_last", padding='same'
                         , use_bias=False, activation='linear', kernel_regularizer=l2(l2=reg))(conv_1)
         batch_norm = BatchNormalization(axis=1)(conv_2)
 
@@ -228,10 +228,32 @@ class ResNetLike(NeuralNetworkModel):
         return output
 
     def conv_layer(self, input, filters, kernel_size, reg):
-        conv = Conv2D(filters=filters, kernel_size=kernel_size, data_format="channels_first", padding='same',
+        conv = Conv2D(filters=filters, kernel_size=kernel_size, data_format="channels_last", padding='same',
                       use_bias=False, activation='linear', kernel_regularizer=l2(reg))(input)
 
         batch_norm = BatchNormalization(axis=1)(conv)
         output = LeakyReLU()(batch_norm)
 
         return output
+
+
+class ConstantModel:
+
+    def __init__(self, batch_size):
+        self.inference_batch_size = batch_size
+
+    def predict(self, board_states, players):
+        uniform_policy = np.ones((len(board_states),) + board_states[0].shape) / np.prod(board_states[0].shape)
+        return uniform_policy, np.zeros(len(board_states))
+
+    def get_packed_copy(self):
+        return self
+
+    def unpack(self):
+        pass
+
+    def get_weights(self):
+        return None
+
+    def set_weights(self, weights):
+        pass

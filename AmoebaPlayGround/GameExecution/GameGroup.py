@@ -25,6 +25,7 @@ class GameGroup:
         self.statistics = Statistics()
         self.finished_games = []
         self.training_samples = TrainingSampleCollection()
+        self.map_size = map_size
         if self.total_game_count < batch_size:
             batch_size = self.total_game_count
         for index in range(batch_size):
@@ -44,7 +45,8 @@ class GameGroup:
         turn = 0
 
         while len(self.games) != 0 or unstarted_games_remaining > 0:
-            self.fill_game_count_to_capacity(turn, unstarted_games_remaining)
+            games_started = self.fill_game_count_to_capacity(turn, unstarted_games_remaining)
+            unstarted_games_remaining -= games_started
             next_agent = self.get_next_agent(self.games[0])  # the same agent has its turn in every active game at the
             # same time, therfore getting the agent of any of them is enough
             action_probabilities, step_statistics, calculation_time = self.calculate_action_probabilities(next_agent)
@@ -62,9 +64,13 @@ class GameGroup:
 
     def fill_game_count_to_capacity(self, turn, unstarted_games_remaining):
         if turn % 2 == 0 or len(self.games) == 0:
-            for i in range(min(self.batch_size - len(self.games), unstarted_games_remaining)):
-                self.games.append(AmoebaGame())
+            games_to_start = min(self.batch_size - len(self.games), unstarted_games_remaining)
+            for i in range(games_to_start):
+                self.games.append(AmoebaGame(self.map_size))
                 self.training_sample_generators.append(self.training_sample_generator_class())
+        else:
+            games_to_start = 0
+        return games_to_start
 
     def calculate_action_probabilities(self, next_agent):
         time_before_step = time.perf_counter()
