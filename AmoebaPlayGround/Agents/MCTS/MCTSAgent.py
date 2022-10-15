@@ -5,7 +5,8 @@ from typing import Dict, List
 import numpy as np
 
 from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode, DictMCTSTree
+from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
+from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.MCTS.UpperConfidenceBound import get_best_ucb_node
 from AmoebaPlayGround.Agents.TensorflowModels import NeuralNetworkModel
 from AmoebaPlayGround.Amoeba import AmoebaGame
@@ -38,7 +39,7 @@ class PositionToSearch:
 class MCTSAgent(AmoebaAgent, ABC):
     def __init__(self, model: NeuralNetworkModel, search_count=100, exploration_rate=1.4,
                  search_batch_size=400, training_epochs=4, dirichlet_ratio=0.1,
-                 tree_type=DictMCTSTree, max_intra_game_parallelism=8,
+                 tree_type=MCTSTree, max_intra_game_parallelism=8,
                  virtual_loss=1):
         self.model = model
         self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}

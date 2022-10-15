@@ -1,5 +1,6 @@
 import time
 
+from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.ProgressPrinter import SingleThreadedProgressPrinter, BaseProgressPrinter
@@ -80,8 +81,22 @@ class SingleThreadGameExecutor(GameExecutor):
         time_after_play = time.perf_counter()
         if print_progress:
             total_time = time_after_play - time_before_play
-            searches_per_step = (agent_1.search_count + agent_2.search_count) / 2
+
+            searches_per_step = self.get_search_count(agent_1, agent_2)
             total_steps = statistics.step_count
             nps = (searches_per_step * total_steps) / total_time
             self.group_finished(nps)
         return games, training_samples, statistics
+
+    def get_search_count(self, agent_1, agent_2):
+        if isinstance(agent_1, MCTSAgent):
+            if isinstance(agent_2, MCTSAgent):
+                return (agent_1.search_count + agent_2.search_count) / 2
+            else:
+                return agent_1.search_count
+        else:
+            if isinstance(agent_2, MCTSAgent):
+                return agent_2.search_count
+            else:
+                print("npm is not calculable since there are no MCTSAgents present")
+                return 1

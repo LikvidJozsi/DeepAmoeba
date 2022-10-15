@@ -29,6 +29,7 @@ class EloEvaluator(Evaluator):
         self.reference_agent_rating = None
         self.evaluation_match_count = evaluation_match_count + evaluation_match_count % 2
         self.puzzle_evaluator = PuzzleEvaluator(puzzle_variation_count, map_size)
+        self.map_size = map_size
 
     def evaluate_agent(self, agent: AmoebaAgent, logger):
         self.evaluate_against_fixed_references(agent, logger)
@@ -71,7 +72,8 @@ class EloEvaluator(Evaluator):
 
     def play_matches(self, agent_to_evaluate, reference_agent, evaluation_match_count):
         games, _, statistics = self.game_executor.play_games_between_agents(
-            evaluation_match_count, agent_to_evaluate, reference_agent, evaluation=True, print_progress=True)
+            evaluation_match_count, agent_to_evaluate, reference_agent, self.map_size, evaluation=True,
+            print_progress=True)
         return statistics.games_won_by_player_1, statistics.draw_games, statistics.get_average_game_length()
 
     def set_reference_agent(self, agent: AmoebaAgent, rating=1000):

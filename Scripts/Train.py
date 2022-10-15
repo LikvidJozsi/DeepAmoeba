@@ -1,6 +1,5 @@
 import AmoebaPlayGround.Amoeba as Amoeba
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
-from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.TensorflowModels import ResNetLike
 from AmoebaPlayGround.Training.AmoebaTrainer import AmoebaTrainer
 
@@ -13,8 +12,7 @@ neural_network_model.create_model(map_size, network_depth=6)
 neural_network_model.print_model_summary()
 
 learning_agent = MCTSAgent(model=neural_network_model, search_count=600,
-                           max_intra_game_parallelism=8,
-                           tree_type=MCTSTree)
+                           max_intra_game_parallelism=8)
 
 # exe = SingleThreadGameExecutor()
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[learning_agent], map_size=map_size,
