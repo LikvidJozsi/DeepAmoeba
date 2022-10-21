@@ -1,4 +1,4 @@
-matplotlib==3.2.1
+matplotlib==3.6.1
 numpy~=1.19.5
 ray~=1.9.2
 tensorflow~=2.5.3

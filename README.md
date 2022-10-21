@@ -12,7 +12,10 @@ The project started as
 a [Master's thesis](https://drive.google.com/file/d/1ixjSL4YSgY6uNmwSPVfP26RlXGydukxL/view?usp=sharing) and transitioned
 into a passion project.
 
-# Usage
+# How to install
 
-TODO add setup tutorial
-
+Installation was tested using python 3.9 on windows 10 (don't judge):
+1. clone repository
+2. install packages in requirements.txt (gpu support for tensorflow is highly recommended so also install CUDA and CuDNN )
+3. run "python setup.py build_ext --inplace" to compile the cython parts of the code
+4. run Train.py in the Scripts folder. If it runs, installation is successful.
