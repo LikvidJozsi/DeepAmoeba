@@ -197,7 +197,7 @@ class ResNetLike(NeuralNetworkModel):
         model = Model(inputs=input, outputs=[policy, value])
         optimizer = Adam(learning_rate=learning_rate)
         # optimizer = SGD(learning_rate=0.01)
-        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 5])
         self.model = model
 
     def get_value_head(self, feature_extractor, reg):
