@@ -97,6 +97,7 @@ class GameGroup:
                 self.finished_games.append(game)
                 training_samples_from_game = training_sample_generator.get_training_data(game.winner)
                 self.training_samples.extend(training_samples_from_game)
+                game.clear_additional_data()
             else:
                 active_games.append(game)
         return active_games

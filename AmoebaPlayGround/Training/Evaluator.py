@@ -22,7 +22,7 @@ class Evaluator:
 
 
 class EloEvaluator(Evaluator):
-    def __init__(self, game_executor, map_size, evaluation_match_count=128, puzzle_variation_count=50,
+    def __init__(self, game_executor, map_size, evaluation_match_count=120, puzzle_variation_count=50,
                  log_file=None):
         self.game_executor = game_executor
         self.reference_agent = None

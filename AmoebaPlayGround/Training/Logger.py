@@ -4,7 +4,7 @@ from os.path import exists
 import numpy as np
 from typing.io import IO
 
-logs_folder = 'Logs/'
+logs_folder = '../Logs/'
 field_separator = ','
 
 

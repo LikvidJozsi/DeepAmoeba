@@ -25,9 +25,9 @@ class PreTrainingLogger(ConsoleLogger):
         self.metrics[key].append(message)
 
 
-neural_network_model = ResNetLike(training_batch_size=32,
+neural_network_model = ResNetLike(training_batch_size=8,
                                   inference_batch_size=8000)
-neural_network_model.create_model(map_size, network_depth=6, reg=1*1e-4, learning_rate=2 * 1e-3)
+neural_network_model.create_model(map_size, network_depth=6, reg=2 * 1e-5, learning_rate=2 * 1e-3)
 
 learning_agent = MCTSAgent(model=neural_network_model, search_count=300,
                            max_intra_game_parallelism=8)
@@ -39,9 +39,8 @@ evaluator = EloEvaluator(game_executor, map_size, puzzle_variation_count=10)
 logger = PreTrainingLogger()
 evaluator.evaluate_agent(learning_agent, logger)
 
-
-dataset_size = 240000
-with open("../Datasets/quickstart_dataset_8x8_300_searches.p", "rb") as file:
+dataset_size = 200000
+with open("../Datasets/quickstart_dataset_8x8_600_searches.p", "rb") as file:
     dataset_generator = TrainingDatasetGenerator(pickle.load(file))
     inputs, output_policies, output_values = dataset_generator.get_dataset(dataset_size)
     output_policies = output_policies.reshape(output_policies.shape[0], -1)
@@ -57,7 +56,7 @@ evaluation_inputs = inputs[evaluation_split_index:]
 evaluation_output_policies = output_policies[evaluation_split_index:]
 evaluation_output_values = output_values[evaluation_split_index:]
 
-epochs = 3
+epochs = 2
 for i in range(epochs):
     print("epoch " + str(i))
 
@@ -68,7 +67,7 @@ for i in range(epochs):
                                                          [evaluation_output_policies, evaluation_output_values]),
                                                      epochs=1,
                                                      shuffle=True,
-                                                     verbose=1, batch_size=32)
+                                                     verbose=1, batch_size=8)
     evaluator.evaluate_agent(learning_agent, logger)
     history = training_result.history
     logger.log("combined_loss", history["loss"][0])
@@ -80,7 +79,7 @@ for i in range(epochs):
 
 if training_name is None:
     date_time = datetime.now()
-    training_name = date_time.strftime("%Y-%m-%d_%H-%M-%S")
+    training_name = date_time.strftime("%Y-%m-%d_%H-%M-%S") + "_pretrained"
 
 neural_network_model.save_model(training_name)
 with open("../PreTrainingLogs/" + training_name + ".p", 'wb') as file:

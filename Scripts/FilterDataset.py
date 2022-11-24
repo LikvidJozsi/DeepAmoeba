@@ -20,9 +20,10 @@ def filter_dataset(dataset):
     progress_bar = tqdm(total=len(dataset.board_states))
     for index, move_probability in enumerate(dataset.move_probabilities):
         progress_bar.update(1)
-        if calculate_entropy(move_probability) < 6:
+        if calculate_entropy(move_probability) < 3.5:
             low_entropy_samples.add_sample(dataset.board_states[index],
-                                           move_probability, dataset.rewards[index])
+                                           move_probability, dataset.rewards[index],
+                                           dataset.reverse_turn_indexes[index])
 
     print(len(dataset.board_states))
     print(len(low_entropy_samples.board_states))
@@ -30,9 +31,8 @@ def filter_dataset(dataset):
 
 
 if __name__ == '__main__':
-    with open("../Datasets/large_dataset.p", 'rb') as train_file, open("../Datasets/evaluation_dataset.p",
-                                                                       'rb') as eval_file:
+    with open("../Datasets/quickstart_dataset_8x8_600_searches.p", 'rb') as train_file:
         dataset = pickle.load(train_file)
-    filtered = filter_dataset(dataset)
-    with open("../Datasets/filtered_dataset.p", 'wb') as file:
+        filtered = filter_dataset(dataset)
+    with open("../Datasets/qucikstart_dataset_8x8_600_searches_filtered.p", 'wb') as file:
         pickle.dump(filtered, file)

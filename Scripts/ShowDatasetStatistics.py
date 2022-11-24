@@ -1,5 +1,6 @@
 import math
 import pickle
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,7 +50,21 @@ def calculate_entropy(sample, plot_count, max_plot_count, index):
     return ent, plot_count
 
 
-with open("../Datasets/quickstart_dataset.p", 'rb') as file:
+def avg_entropy_by_reverse_turn_index(reverse_turn_indices, entropies):
+    reverse_turn_index_dict = defaultdict(lambda: {"count": 0, "sum": 0})
+    for index, entropy in zip(reverse_turn_indices, entropies):
+        previous_sum = reverse_turn_index_dict[index]
+        reverse_turn_index_dict[index] = {"count": previous_sum["count"] + 1, "sum": previous_sum["sum"] + entropy}
+
+    sorted_keys = sorted(reverse_turn_index_dict.keys())
+    reverse_turn_index_avg_list = []
+    for index in sorted_keys:
+        sum_for_idx = reverse_turn_index_dict[index]
+        reverse_turn_index_avg_list.append(sum_for_idx["sum"] / sum_for_idx["count"])
+    return sorted_keys, reverse_turn_index_avg_list
+
+
+with open("../Datasets/quickstart_dataset_8x8_600_searches.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1
@@ -62,4 +77,8 @@ with open("../Datasets/quickstart_dataset.p", 'rb') as file:
 
     num_bins = 40
     n, bins, patches = plt.hist(entropies, num_bins, facecolor='blue', alpha=0.5)
+    plt.show()
+
+    indexes, avg_entropy_by_turn = avg_entropy_by_reverse_turn_index(dataset.reverse_turn_indexes, entropies)
+    plt.plot(indexes, avg_entropy_by_turn)
     plt.show()

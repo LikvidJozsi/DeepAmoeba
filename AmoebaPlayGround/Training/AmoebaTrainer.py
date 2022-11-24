@@ -9,17 +9,19 @@ from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 from AmoebaPlayGround.Training.Input import get_model_filename
 from AmoebaPlayGround.Training.Logger import Statistics, FileLogger
 from AmoebaPlayGround.Training.Logger import logs_folder
-from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGenerator
+from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGenerator, TrainingSampleCollection
 
 
 class AmoebaTrainer:
     def __init__(self, learning_agent, teaching_agents, map_size, game_executor=None,
-                 workers_per_inference_server=2, training_sample_entropy_cutoff_schedule=None,
+                 workers_per_inference_server=4, inference_server_count=3, training_sample_entropy_cutoff_schedule=None,
                  resume_previous_training=False,
                  training_sample_turn_cutoff_schedule=None, sample_episode_window_width_schedule=None,
                  move_selection_strategy=MoveSelectionStrategy()):
         self.learning_agent: AmoebaAgent = learning_agent
+        learning_agent.name = "learning_agent"
         self.learning_agent_with_old_state: AmoebaAgent = learning_agent.get_copy()
+        self.learning_agent_with_old_state.name = "old_state_agent"
         self.teaching_agents = teaching_agents
         self.training_sample_entropy_cutoff_schedule = training_sample_entropy_cutoff_schedule
         self.training_sample_turn_cutoff_schedule = training_sample_turn_cutoff_schedule
@@ -29,6 +31,7 @@ class AmoebaTrainer:
         if game_executor is None:
             game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state,
                                                  workers_per_inference_server,
+                                                 inference_server_count=inference_server_count,
                                                  move_selection_strategy=move_selection_strategy)
         self.game_executor = game_executor
 
@@ -79,35 +82,26 @@ class AmoebaTrainer:
                                                     self.current_episode)
 
     def load_latest_dataset(self):
-        with open("Datasets/latest_dataset.p", "rb") as file:
+        with open("../Datasets/latest_dataset.p", "rb") as file:
             dataset = pickle.load(file)
             return dataset
 
     def save_latest_dataset(self, dataset):
-        with open("Datasets/latest_dataset.p", "wb") as file:
+        with open("../Datasets/latest_dataset.p", "wb") as file:
             pickle.dump(dataset, file)
-
-    def load_quickstart_dataset(self, training_sample_entropy_cutoff, training_sample_turn_cutoff):
-        with open("Datasets/quickstart_dataset.p", "rb") as file:
-            dataset = pickle.load(file)
-        with open("Datasets/quickstart_dataset_statistics.p", "rb") as file:
-            statistics = pickle.load(file)
-
-        dataset.filter_samples(training_sample_entropy_cutoff,
-                               training_sample_turn_cutoff)
-
-        return dataset, statistics
 
     def train(self, batch_size=1, num_episodes=1):
         while self.current_episode < num_episodes:
             self.logger.log("episode", self.current_episode)
             statistics = Statistics()
-            training_samples_for_episode = []
+            training_samples_for_episode = TrainingSampleCollection()
             self.training_dataset_generator.set_episode_window_width(self.calculate_episode_window_width())
             self.print_episode_information()
 
             for teacher_index, teaching_agent in enumerate(self.teaching_agents):
                 print('Playing games against ' + teaching_agent.get_name())
+                teaching_agent.set_training_mode()
+                self.learning_agent.set_training_mode()
                 _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
                     batch_size, self.learning_agent, teaching_agent, self.map_size, evaluation=False,
                     print_progress=True)
@@ -126,6 +120,8 @@ class AmoebaTrainer:
             self.train_learing_agent()
 
             print('Evaluating agent:')
+            self.learning_agent.set_evaluation_mode()
+            self.learning_agent_with_old_state.set_evaluation_mode()
             self.evaluator.evaluate_agent(self.learning_agent, self.logger)
 
             self.end_episode()
@@ -142,7 +138,6 @@ class AmoebaTrainer:
         self.current_episode += 1
 
     def train_learing_agent(self):
-        train_history = self.learning_agent.train(self.training_dataset_generator)
-        self.learning_agent.get_neural_network_model().distribute_weights()
+        train_history = self.learning_agent.model.train(self.training_dataset_generator)
         last_loss = train_history.history['loss'][-1]
         self.logger.log("loss", last_loss)

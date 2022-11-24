@@ -121,10 +121,11 @@ class TrainingSampleCollection:
         self.rewards.extend(training_sample_collection.rewards)
         self.reverse_turn_indexes.extend(training_sample_collection.reverse_turn_indexes)
 
-    def add_sample(self, board_state, move_probability, reward):
+    def add_sample(self, board_state, move_probability, reward, reverse_turn_indexes):
         self.board_states.append(board_state)
         self.move_probabilities.append(move_probability)
         self.rewards.append(reward)
+        self.reverse_turn_indexes.append(reverse_turn_indexes)
 
     def filter_samples(self, entropy_cutoff=None, turn_cutoff=None):
         if entropy_cutoff is None:
@@ -134,17 +135,19 @@ class TrainingSampleCollection:
         original_board_states = self.board_states
         original_move_probabilities = self.move_probabilities
         original_rewards = self.rewards
+        original_reverse_turn_indexes = self.reverse_turn_indexes
         self.board_states = []
         self.move_probabilities = []
         self.rewards = []
+        self.reverse_turn_indexes = []
 
         for board_state, probability_map, reward, reverse_turn_index in zip(original_board_states,
                                                                             original_move_probabilities,
                                                                             original_rewards,
-                                                                            self.reverse_turn_indexes):
+                                                                            original_reverse_turn_indexes):
             entropy = self.calculate_entropy(probability_map)
             if entropy < entropy_cutoff and reverse_turn_index <= turn_cutoff:
-                self.add_sample(board_state, probability_map, reward)
+                self.add_sample(board_state, probability_map, reward, reverse_turn_index)
 
     def calculate_entropy(self, probabilites):
         probabilites = np.maximum(probabilites.flatten(), 1e-8)

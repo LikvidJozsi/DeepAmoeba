@@ -1,6 +1,6 @@
 import copy
 from abc import ABC
-from typing import Dict, List
+from typing import List
 
 import numpy as np
 
@@ -10,7 +10,6 @@ from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.MCTS.UpperConfidenceBound import get_best_ucb_node
 from AmoebaPlayGround.Agents.TensorflowModels import NeuralNetworkModel
 from AmoebaPlayGround.Amoeba import AmoebaGame
-from AmoebaPlayGround.GameBoard import AmoebaBoard
 from AmoebaPlayGround.Training.Logger import Statistics
 
 
@@ -37,12 +36,12 @@ class PositionToSearch:
 
 
 class MCTSAgent(AmoebaAgent, ABC):
-    def __init__(self, model: NeuralNetworkModel, search_count=100, exploration_rate=1.4,
+    def __init__(self, model: NeuralNetworkModel, name="agent", search_count=100, exploration_rate=1.4,
                  search_batch_size=400, training_epochs=4, dirichlet_ratio=0.1,
                  tree_type=MCTSTree, max_intra_game_parallelism=8,
                  virtual_loss=1):
         self.model = model
-        self.mcts_nodes: Dict[AmoebaBoard, MCTSNode] = {}
+        self.name = name
         self.search_count = search_count
         self.exploration_rate = exploration_rate
         self.training_epochs = training_epochs
@@ -50,7 +49,6 @@ class MCTSAgent(AmoebaAgent, ABC):
         self.evaluation = False
         self.search_batch_size = search_batch_size
         self.statistics = Statistics()
-        self.search_trees = dict()
         self.tree_type = tree_type
         self.virtual_loss = virtual_loss
         self.max_intra_game_parallelism = max_intra_game_parallelism
@@ -63,6 +61,9 @@ class MCTSAgent(AmoebaAgent, ABC):
 
     def get_neural_network_model(self):
         return self.model
+
+    def save(self, model_name):
+        self.model.save_model(model_name)
 
     def reset_statistics(self):
         self.statistics = Statistics()
@@ -93,18 +94,14 @@ class MCTSAgent(AmoebaAgent, ABC):
             list(map(lambda p: p.search_node, finished_positions))), self.statistics
 
     def get_search_trees_for_games(self, games):
-        updated_tree_dictionary = dict()
         trees = []
         for game in games:
-            stored_tree = self.search_trees.get(game.id)
-            if stored_tree is not None:
-                updated_tree_dictionary[game.id] = stored_tree
-                trees.append(stored_tree)
+            if game.additional_data_present(self.name):
+                trees.append(game.get_additional_data(self.name)["search_tree"])
             else:
                 new_tree = self.tree_type(game.num_steps)
-                updated_tree_dictionary[game.id] = new_tree
                 trees.append(new_tree)
-        self.search_trees = updated_tree_dictionary
+                game.set_additional_data(self.name, {"search_tree": new_tree})
         return trees
 
     def move_over_fully_searched_games(self, positions_to_search, finished_positions):

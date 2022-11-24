@@ -44,7 +44,7 @@ class BoardIterator:
 class AmoebaBoard:
     def __init__(self, size=None, cells=None, occupied_cells=0):
         if cells is None:
-            self.cells = np.zeros(size, dtype=np.uint8)
+            self.cells = np.zeros(size, dtype=np.int8)
         else:
             self.cells = cells
         self.occupied_cells = occupied_cells

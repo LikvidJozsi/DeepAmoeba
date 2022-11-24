@@ -8,7 +8,6 @@ from AmoebaPlayGround.GameBoard import AmoebaBoard, Player, X_SYMBOL, EMPTY_SYMB
 from AmoebaPlayGround.GameEndChecker import check_victory_condition
 from AmoebaPlayGround.GameExecution.MoveSelector import MaximalMoveSelector
 
-game_id_counter = 0
 win_sequence_length = 5
 
 
@@ -21,17 +20,15 @@ class Move:
 
 class AmoebaGame:
     def __init__(self, map_size, view=None, board_state=None, play_first_move=True):
-        global game_id_counter
         self.view = view
         if len(map_size) != 2:
             raise Exception('Map must be two dimensional but found shape %s' % (str(map_size)))
         if win_sequence_length >= map_size[0]:
             raise Exception('Map size is smaller than the length of a winning sequence.')
         self.map = AmoebaBoard(size=map_size, cells=board_state)
-        self.id = game_id_counter
-        game_id_counter += 1
         self.num_steps = 0
         self.history = []
+        self.additional_data = {}
         if board_state is None:
             self.init_map()
             if play_first_move:
@@ -45,6 +42,18 @@ class AmoebaGame:
 
         if self.view is not None:
             self.view.display_game_state(self.map)
+
+    def clear_additional_data(self):
+        self.additional_data = {}
+
+    def additional_data_present(self, key):
+        return key in self.additional_data
+
+    def set_additional_data(self, key, data):
+        self.additional_data[key] = data
+
+    def get_additional_data(self, key):
+        return self.additional_data[key]
 
     def place_first_piece(self, max_distance_from_center=2):
         board_size = self.map.get_shape()
@@ -67,15 +76,15 @@ class AmoebaGame:
             current_agent = agents[current_agent_index]
 
             if hightlight_agent is not None:
-                formatted_input = hightlight_agent.format_input([self.map.cells], [self.get_next_player()])
-                output_1d, value = hightlight_agent.model.do_predict(formatted_input, batch_size=1)
+                output_1d, value = hightlight_agent.model.predict([self.map.cells], [self.get_next_player()])
                 board_size = self.map.get_shape()
                 output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
                 color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)
                 self.view.display_background_color_intensities(color_intensities)
                 self.view.set_additional_info(f"value: {value[0][0]}")
-            action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player(), True)
+            action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player())
             action = move_selector.select_move(action_probabilities[0])
+            print(action)
             self.step(action)
             current_agent_index = (current_agent_index + 1) % 2
 

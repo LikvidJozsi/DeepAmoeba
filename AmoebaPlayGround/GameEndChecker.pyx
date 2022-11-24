@@ -2,7 +2,7 @@ cimport numpy as cnp
 import cython
 
 @cython.boundscheck(False)
-def check_victory_condition(cnp.uint8_t[:,:]  game_board ,int[:] move,int win_sequence_length = 5):
+def check_victory_condition(cnp.int8_t[:,:]  game_board ,int[:] move,int win_sequence_length = 5):
     cdef int player_symbol = game_board[move[0],move[1]]
     player_won = (
             is_there_winning_line_in_direction(game_board, player_symbol, move[0],move[1],1, 0,win_sequence_length) or  # vertical
@@ -15,7 +15,7 @@ def check_victory_condition(cnp.uint8_t[:,:]  game_board ,int[:] move,int win_se
 
 
 @cython.boundscheck(False)
-cdef bint is_there_winning_line_in_direction(cnp.uint8_t[:,:]  game_board,int player_symbol,int move_x,int move_y,int dir_x, int dir_y,int win_sequence_length):
+cdef bint is_there_winning_line_in_direction(cnp.int8_t[:,:]  game_board,int player_symbol,int move_x,int move_y,int dir_x, int dir_y,int win_sequence_length):
     # ....x....
     # only 4 places in each direction count in determining if the new move created a winning condition of
     # a five figure long line
@@ -56,7 +56,7 @@ cdef bint is_there_winning_line_in_direction(cnp.uint8_t[:,:]  game_board,int pl
     return line_length >= win_sequence_length - 1
 
 @cython.boundscheck(False)
-cdef bint is_there_winning_line_in_reverse_diagonal(cnp.uint8_t[:,:] game_board,int player_symbol,int move_x,int move_y,int win_sequence_length):
+cdef bint is_there_winning_line_in_reverse_diagonal(cnp.int8_t[:,:] game_board,int player_symbol,int move_x,int move_y,int win_sequence_length):
     # in the reverse diagonal
     # ........x
     # .......x.

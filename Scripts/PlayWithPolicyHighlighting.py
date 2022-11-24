@@ -1,13 +1,13 @@
 import AmoebaPlayGround.Amoeba as Amoeba
-import MCTSTree
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Agents.TensorflowModels import ResNetLike
 from AmoebaPlayGround.AmoebaView import GraphicalView
+from MCTSTree import MCTSTree
 
 map_size = (8, 8)
 
 neural_network_model = ResNetLike()
-neural_network_model.create_model(map_size, network_depth=6)
+neural_network_model.load_model("2022-11-06_12-06-11_pretrained")
 
 graphical_view = GraphicalView(map_size)
 neural_agent = MCTSAgent(model=neural_network_model, search_count=600,

@@ -56,7 +56,7 @@ class ParallelGameExecutor(GameExecutor):
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation=False,
                                   print_progress=True):
-        self.distribute_weights(agent_1, agent_1)
+        self.distribute_weights(agent_1, agent_2)
         game_groups = self.generate_workloads(agent_1, agent_2, map_size, game_count, self.max_parallel_games,
                                               evaluation,
                                               print_progress)
@@ -162,5 +162,8 @@ class GameExecutorWorker:
                                reversed_agent_order=agent_order_reversed,
                                progress_printer=progress_printer)
         results = game_group.play_all_games()
-        agent_1.model.inference_server.worker_finished.remote()
+        if isinstance(agent_1, MCTSAgent):
+            agent_1.model.inference_server.worker_finished.remote()
+        else:
+            agent_2.model.inference_server.worker_finished.remote()
         return results

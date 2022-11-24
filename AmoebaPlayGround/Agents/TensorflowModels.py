@@ -17,7 +17,7 @@ from tensorflow.python.keras.layers import Dropout, LeakyReLU
 from tensorflow.python.keras.regularizers import l2
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection, TrainingDatasetGenerator
 
-models_folder = 'Models/'
+models_folder = '../Models/'
 
 tf.config.optimizer.set_jit(True)
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -197,7 +197,7 @@ class ResNetLike(NeuralNetworkModel):
         model = Model(inputs=input, outputs=[policy, value])
         optimizer = Adam(learning_rate=learning_rate)
         # optimizer = SGD(learning_rate=0.01)
-        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 5])
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
         self.model = model
 
     def get_value_head(self, feature_extractor, reg):
@@ -243,7 +243,11 @@ class ConstantModel:
         self.inference_batch_size = batch_size
 
     def predict(self, board_states, players):
-        uniform_policy = np.ones((len(board_states),) + board_states[0].shape) / np.prod(board_states[0].shape)
+        board_shape = board_states[0].shape
+        uniform_policy = np.ones((len(board_states),) + board_shape) / np.prod(board_states[0].shape)
+        for i in range(uniform_policy.shape[0]):
+            uniform_policy[i] = uniform_policy[i] * 0.9 + 0.1 * np.random.dirichlet(
+                [0.1] * np.prod(board_shape)).reshape(board_shape)
         return uniform_policy, np.zeros(len(board_states))
 
     def get_packed_copy(self):
