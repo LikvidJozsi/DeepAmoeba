@@ -1,4 +1,4 @@
-matplotlib==3.6.1
+matplotlib==3.2.1
 numpy~=1.19.5
 ray~=1.9.2
 tensorflow~=2.7.4
@@ -8,3 +8,4 @@ numba~=0.53.1
 future~=0.18.2
 tqdm~=4.62.3
 pandas~=1.0.3
+toml~=0.10.2

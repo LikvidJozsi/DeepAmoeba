@@ -13,31 +13,23 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGen
 
 
 class AmoebaTrainer:
-    def __init__(self, learning_agent, teaching_agents, map_size, game_executor=None,
-                 workers_per_inference_server=4, inference_server_count=3, training_sample_entropy_cutoff_schedule=None,
-                 resume_previous_training=False,
-                 training_sample_turn_cutoff_schedule=None, sample_episode_window_width_schedule=None,
-                 move_selection_strategy=MoveSelectionStrategy()):
+    def __init__(self, learning_agent, teaching_agents, config):
         self.learning_agent: AmoebaAgent = learning_agent
         learning_agent.name = "learning_agent"
+        self.config = config["trainer"]
+        self.map_size = config["map_size"]  # TODO make this more elegant somehow
         self.learning_agent_with_old_state: AmoebaAgent = learning_agent.get_copy()
         self.learning_agent_with_old_state.name = "old_state_agent"
         self.teaching_agents = teaching_agents
-        self.training_sample_entropy_cutoff_schedule = training_sample_entropy_cutoff_schedule
-        self.training_sample_turn_cutoff_schedule = training_sample_turn_cutoff_schedule
-        self.sample_episode_window_width_schedule = sample_episode_window_width_schedule
-        self.map_size = map_size
 
-        if game_executor is None:
-            game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state,
-                                                 workers_per_inference_server,
-                                                 inference_server_count=inference_server_count,
-                                                 move_selection_strategy=move_selection_strategy)
-        self.game_executor = game_executor
+        self.game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state,
+                                                  self.config["workers_per_inference_server"],
+                                                  inference_server_count=self.config["inference_server_count"],
+                                                  move_selection_strategy=MoveSelectionStrategy())  # TODO make move selection parametrizable again
 
-        self.evaluator = EloEvaluator(game_executor, map_size)
+        self.evaluator = EloEvaluator(self.game_executor, self.map_size)  # TODO pass config
 
-        if resume_previous_training:
+        if self.config["resume_previous_training"]:
             self.training_id = self.get_latest_training_id()
             self.training_dataset_generator = self.load_latest_dataset()
             self.logger = FileLogger(self.training_id)
@@ -68,17 +60,17 @@ class AmoebaTrainer:
 
     def calculate_episode_window_width(self):
         sample_episode_window_width = self.get_scheduled_value_for_episode(
-            self.sample_episode_window_width_schedule,
+            self.config.get("sample_episode_window_width_schedule"),
             self.current_episode)
         return sample_episode_window_width
 
     def calculate_training_sample_entropy_cutoff(self):
         return self.get_scheduled_value_for_episode(
-            self.training_sample_entropy_cutoff_schedule,
+            self.config.get("training_sample_entropy_cutoff_schedule"),
             self.current_episode)
 
     def calculate_training_sample_cutoff(self):
-        return self.get_scheduled_value_for_episode(self.training_sample_turn_cutoff_schedule,
+        return self.get_scheduled_value_for_episode(self.config.get("training_sample_turn_cutoff_schedule"),
                                                     self.current_episode)
 
     def load_latest_dataset(self):

@@ -49,12 +49,9 @@ def get_model_file_path(model_name):
 #  unpacked/compiled state has its own compiled tensorflow model (model exists serialized_model is None)
 #  packed state has all the information but is not compiled, so it can be transported between processes (model is None and serialized_model exists)
 class NeuralNetworkModel(ABC):
-    def __init__(self, training_dataset_max_size, training_batch_size=100, training_epochs=10,
-                 inference_batch_size=400):
-        self.training_batch_size = training_batch_size
-        self.inference_batch_size = inference_batch_size
-        self.training_epochs = training_epochs
-        self.training_dataset_max_size = training_dataset_max_size
+    def __init__(self, config):
+        self.config = config["neural_network"]
+        self.map_size = config["map_size"]
         self.model = None
         self.serialized_model = None
 
@@ -132,10 +129,13 @@ class NeuralNetworkModel(ABC):
     def train(self, dataset_generator: TrainingDatasetGenerator,
               validation_dataset: TrainingSampleCollection = None):
         print('number of training samples: ' + str(dataset_generator.get_sample_count()))
-        inputs, output_policies, output_values = dataset_generator.get_dataset(self.training_dataset_max_size)
+        inputs, output_policies, output_values = dataset_generator.get_dataset(
+            self.config["general"]["training_dataset_max_size"])
         output_policies = output_policies.reshape(output_policies.shape[0], -1)
-        return self.model.fit(x=inputs, y=[output_policies, output_values], epochs=self.training_epochs, shuffle=True,
-                              verbose=1, batch_size=self.training_batch_size)
+        return self.model.fit(x=inputs, y=[output_policies, output_values],
+                              epochs=self.config["general"]["training_epochs"],
+                              shuffle=True,
+                              verbose=1, batch_size=self.config["general"]["training_batch_size"])
 
     # TODO this is amoeba specific, refactor
     def predict(self, board_states, players):
@@ -143,7 +143,7 @@ class NeuralNetworkModel(ABC):
         input = self.format_input(board_states, players)
         if len(input) == 0:
             print("biggus problemus")
-        output_2d, value = self.model.predict(input, batch_size=self.inference_batch_size)
+        output_2d, value = self.model.predict(input, batch_size=self.config["general"]["inference_batch_size"])
         output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
         return output_2d, value
 
@@ -179,23 +179,22 @@ class PolicyValueNeuralNetwork(NeuralNetworkModel):
 
 
 class ResNetLike(NeuralNetworkModel):
-    def __init__(self, training_epochs=12, training_batch_size=16,
-                 inference_batch_size=400, training_dataset_max_size=600000):
-        super().__init__(training_dataset_max_size, training_batch_size, training_epochs,
-                         inference_batch_size)
+    def __init__(self, config):
+        super().__init__(config)
 
-    def create_model(self, map_size, network_depth=8, reg=0.000001, learning_rate=0.003):
-        input = Input(shape=map_size + (2,))
-        conv_1 = self.conv_layer(input, 64, (3, 3), reg)
+    def create_model(self):
+        regularization = self.config["graph"]["reg"]
+        input = Input(shape=tuple(self.map_size) + (2,))
+        conv_1 = self.conv_layer(input, 64, (3, 3), regularization)
         current_network_end = conv_1
-        for index in range(network_depth):
-            current_network_end = self.identity_block(current_network_end, filters=[64, 64], reg=reg)
+        for index in range(self.config["graph"]["network_depth"]):
+            current_network_end = self.identity_block(current_network_end, filters=[64, 64], reg=regularization)
 
-        policy = self.get_policy_head(current_network_end, map_size, reg)
-        value = self.get_value_head(current_network_end, reg)
+        policy = self.get_policy_head(current_network_end, self.map_size, regularization)
+        value = self.get_value_head(current_network_end, regularization)
 
         model = Model(inputs=input, outputs=[policy, value])
-        optimizer = Adam(learning_rate=learning_rate)
+        optimizer = Adam(learning_rate=self.config["graph"]["learning_rate"])
         # optimizer = SGD(learning_rate=0.01)
         model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
         self.model = model

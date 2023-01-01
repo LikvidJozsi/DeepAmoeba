@@ -1,0 +1,33 @@
+map_size = [8, 8]
+
+[trainer]
+value = "something"
+resume_previous_training = false
+sample_episode_window_width_schedule = [[0, 1], [2, 2], [6, 3]]
+# training_sample_entropy_cutoff_schedule = None
+# training_sample_turn_cutoff_schedule = None
+workers_per_inference_server = 4
+inference_server_count = 3
+
+[neural_network.general]
+training_batch_size = 4
+inference_batch_size = 1500
+training_dataset_max_size = 200000
+training_epochs = 1
+
+[neural_network.graph]
+first_convolution_size = [9, 9]
+network_depth = 6
+dropout = 0.0
+reg = 1e-3
+learning_rate = 0.8e-3
+weights_file = "2022-11-15_22-15-32_pretrained"
+
+[mcts]
+search_count = 100
+exploration_rate = 1.4
+search_batch_size = 400
+training_epochs = 4
+dirichlet_ratio = 0.1
+max_intra_game_parallelism = 8
+virtual_loss = 1

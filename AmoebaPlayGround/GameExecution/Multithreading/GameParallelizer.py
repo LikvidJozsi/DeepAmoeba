@@ -30,7 +30,7 @@ class ParallelGameExecutor(GameExecutor):
         self.worker_count = workers_per_inference_server * inference_server_count
         self.printer_actor = ParallelProgressPrinterActor.remote(self.worker_count)
 
-        inference_batch_size = learning_agent.get_neural_network_model().inference_batch_size
+        inference_batch_size = learning_agent.get_neural_network_model().config["general"]["inference_batch_size"]
         self.per_worker_batch_size = inference_batch_size / workers_per_inference_server * 2
         print(f"{self.per_worker_batch_size} parallel searches per worker")
 

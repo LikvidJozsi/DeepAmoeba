@@ -36,22 +36,20 @@ class PositionToSearch:
 
 
 class MCTSAgent(AmoebaAgent, ABC):
-    def __init__(self, model: NeuralNetworkModel, name="agent", search_count=100, exploration_rate=1.4,
-                 search_batch_size=400, training_epochs=4, dirichlet_ratio=0.1,
-                 tree_type=MCTSTree, max_intra_game_parallelism=8,
-                 virtual_loss=1):
+    def __init__(self, model: NeuralNetworkModel, config, name="agent"):
         self.model = model
         self.name = name
-        self.search_count = search_count
-        self.exploration_rate = exploration_rate
-        self.training_epochs = training_epochs
-        self.dirichlet_ratio = dirichlet_ratio
+        config = config["mcts"]
+        self.search_count = config["search_count"]
+        self.exploration_rate = config["exploration_rate"]
+        self.training_epochs = config["training_epochs"]
+        self.dirichlet_ratio = config["dirichlet_ratio"]
         self.evaluation = False
-        self.search_batch_size = search_batch_size
+        self.search_batch_size = config["search_batch_size"]
         self.statistics = Statistics()
-        self.tree_type = tree_type
-        self.virtual_loss = virtual_loss
-        self.max_intra_game_parallelism = max_intra_game_parallelism
+        self.tree_type = MCTSTree  # TODO make this configureable again
+        self.virtual_loss = config["virtual_loss"]
+        self.max_intra_game_parallelism = config["max_intra_game_parallelism"]
 
     def set_training_mode(self):
         self.evaluation = False
