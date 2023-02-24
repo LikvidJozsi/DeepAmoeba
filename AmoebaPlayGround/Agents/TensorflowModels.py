@@ -16,12 +16,15 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers import Dropout, LeakyReLU
 from tensorflow.python.keras.regularizers import l2
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection, TrainingDatasetGenerator
+from tensorflow.keras import mixed_precision
 
 models_folder = '../Models/'
 
 tf.config.optimizer.set_jit(True)
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
+policy = mixed_precision.Policy('mixed_float16')
+mixed_precision.set_global_policy(policy)
 
 
 def get_latest_model():
@@ -143,7 +146,7 @@ class NeuralNetworkModel(ABC):
         input = self.format_input(board_states, players)
         if len(input) == 0:
             print("biggus problemus")
-        output_2d, value = self.model.predict(input, batch_size=self.config["general"]["inference_batch_size"])
+        output_2d, value = self.model.predict(input, batch_size=len(input))
         output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
         return output_2d, value
 
@@ -185,7 +188,7 @@ class ResNetLike(NeuralNetworkModel):
     def create_model(self):
         regularization = self.config["graph"]["reg"]
         input = Input(shape=tuple(self.map_size) + (2,))
-        conv_1 = self.conv_layer(input, 64, (3, 3), regularization)
+        conv_1 = self.conv_layer(input, 64, self.config["graph"]["first_convolution_size"], regularization)
         current_network_end = conv_1
         for index in range(self.config["graph"]["network_depth"]):
             current_network_end = self.identity_block(current_network_end, filters=[64, 64], reg=regularization)
@@ -196,7 +199,8 @@ class ResNetLike(NeuralNetworkModel):
         model = Model(inputs=input, outputs=[policy, value])
         optimizer = Adam(learning_rate=self.config["graph"]["learning_rate"])
         # optimizer = SGD(learning_rate=0.01)
-        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer, loss_weights=[1, 1])
+        model.compile(loss=['categorical_crossentropy', 'mean_squared_error'], optimizer=optimizer,
+                      loss_weights=self.config["graph"]["loss_weights"])
         self.model = model
 
     def get_value_head(self, feature_extractor, reg):
@@ -238,8 +242,8 @@ class ResNetLike(NeuralNetworkModel):
 
 class ConstantModel:
 
-    def __init__(self, batch_size):
-        self.inference_batch_size = batch_size
+    def __init__(self):
+        pass
 
     def predict(self, board_states, players):
         board_shape = board_states[0].shape

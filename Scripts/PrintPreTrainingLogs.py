@@ -1,8 +1,11 @@
-import pickle
-import matplotlib.pyplot as plt
-import numpy as np
 import glob
 import os
+import pickle
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+training_name = "2023-02-23_20-45-22_pretrained"
 training_name = None
 
 if training_name is None:

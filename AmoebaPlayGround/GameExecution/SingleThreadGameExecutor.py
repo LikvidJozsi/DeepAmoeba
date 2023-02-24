@@ -2,7 +2,7 @@ import time
 
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
-from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
+from AmoebaPlayGround.GameExecution.MoveSelector import MOVE_SELECTION_STRATEGIES
 from AmoebaPlayGround.GameExecution.ProgressPrinter import SingleThreadedProgressPrinter, BaseProgressPrinter
 from AmoebaPlayGround.Training.Logger import Statistics
 from AmoebaPlayGround.Training.TrainingSampleGenerator import PlaceholderTrainingSampleGenerator, \
@@ -39,9 +39,9 @@ class GameExecutor:
 
 
 class SingleThreadGameExecutor(GameExecutor):
-
-    def __init__(self, move_selection_strategy=MoveSelectionStrategy()):
-        self.move_selection_strategy = move_selection_strategy
+    def __init__(self, _, __, config):
+        self.move_selection_strategy = MOVE_SELECTION_STRATEGIES[config["move_selection_strategy_type"]]
+        self.inference_batch_size = config["inference_batch_size"]
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation=False,
                                   print_progress=True):
@@ -56,9 +56,8 @@ class SingleThreadGameExecutor(GameExecutor):
         else:
             progress_printer = BaseProgressPrinter()
 
-        inference_batch_size = agent_1.get_neural_network_model().inference_batch_size
         intra_game_parallelism = agent_1.max_intra_game_parallelism
-        max_parallel_games = int(inference_batch_size / intra_game_parallelism)
+        max_parallel_games = int(self.inference_batch_size / intra_game_parallelism)
 
         time_before_play = time.perf_counter()
         game_group_1 = GameGroup(games_per_group, max_parallel_games, map_size, agent_1, agent_2,

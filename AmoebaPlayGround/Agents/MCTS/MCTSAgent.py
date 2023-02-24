@@ -5,13 +5,17 @@ from typing import List
 import numpy as np
 
 from AmoebaPlayGround.Agents.AmoebaAgent import AmoebaAgent
-from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode
+from AmoebaPlayGround.Agents.MCTS.DictMCTSTree import MCTSNode, DictMCTSTree
 from AmoebaPlayGround.Agents.MCTS.MCTSTree import MCTSTree
 from AmoebaPlayGround.Agents.MCTS.UpperConfidenceBound import get_best_ucb_node
 from AmoebaPlayGround.Agents.TensorflowModels import NeuralNetworkModel
 from AmoebaPlayGround.Amoeba import AmoebaGame
 from AmoebaPlayGround.Training.Logger import Statistics
 
+TREE_TYPES = {
+    "MCTSTree": MCTSTree,
+    "DictMCTSTree": DictMCTSTree
+}
 
 class PositionToSearch:
     def __init__(self, search_node: MCTSNode, search_tree: dict, searches_remaining: int, id: int):
@@ -47,7 +51,7 @@ class MCTSAgent(AmoebaAgent, ABC):
         self.evaluation = False
         self.search_batch_size = config["search_batch_size"]
         self.statistics = Statistics()
-        self.tree_type = MCTSTree  # TODO make this configureable again
+        self.tree_type = TREE_TYPES[config["tree_type"]]
         self.virtual_loss = config["virtual_loss"]
         self.max_intra_game_parallelism = config["max_intra_game_parallelism"]
 
@@ -248,7 +252,8 @@ class MCTSAgent(AmoebaAgent, ABC):
 
     def choose_move(self, search_node: MCTSNode, search_tree, player):
         best_move = get_best_ucb_node(search_node.sum_expected_move_rewards,
-                                      search_node.get_policy(), search_node.move_visited_counts,
+                                      np.array(search_node.get_policy(), dtype=np.float32),
+                                      search_node.move_visited_counts,
                                       search_node.invalid_moves, self.exploration_rate, search_node.visited_count,
                                       search_node.board_state.get_shape())
         if best_move is None:

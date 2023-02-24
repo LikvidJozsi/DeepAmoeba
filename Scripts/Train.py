@@ -5,7 +5,6 @@ from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Agents.TensorflowModels import ResNetLike
 from AmoebaPlayGround.Training.AmoebaTrainer import AmoebaTrainer
 
-map_size = (8, 8)
 Amoeba.win_sequence_length = 5
 config = None
 
@@ -21,4 +20,4 @@ learning_agent = MCTSAgent(model=neural_network_model, config=config)
 
 # exe = SingleThreadGameExecutor()
 trainer = AmoebaTrainer(learning_agent, teaching_agents=[learning_agent], config=config)
-trainer.train(batch_size=1500, num_episodes=30)
+trainer.train()

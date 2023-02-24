@@ -1,27 +1,34 @@
-map_size = [8, 8]
+map_size = [15, 15]
 
 [trainer]
-value = "something"
 resume_previous_training = false
 sample_episode_window_width_schedule = [[0, 1], [2, 2], [6, 3]]
 # training_sample_entropy_cutoff_schedule = None
 # training_sample_turn_cutoff_schedule = None
+episode_count = 35
+games_per_episode = 1500
+
+[trainer.game_executor]
+game_executor_type = "ParallelGameExecutor" # ParallelGameExecutor or SingleThreadGameExecutor
 workers_per_inference_server = 4
 inference_server_count = 3
+inference_batch_size = 1500
+move_selection_strategy_type = "MoveSelectionStrategy" # MoveSelectionStrategy or EvaluationMoveSelectionStrategy
+
 
 [neural_network.general]
 training_batch_size = 4
-inference_batch_size = 1500
 training_dataset_max_size = 200000
 training_epochs = 1
 
 [neural_network.graph]
-first_convolution_size = [9, 9]
+first_convolution_size = [3, 3]
 network_depth = 6
 dropout = 0.0
 reg = 1e-3
 learning_rate = 0.8e-3
-weights_file = "2022-11-15_22-15-32_pretrained"
+weights_file = "2023-01-29_13-51-02_pretrained"
+loss_weights = [1, 12] # left: policy, right: value
 
 [mcts]
 search_count = 100
@@ -31,3 +38,4 @@ training_epochs = 4
 dirichlet_ratio = 0.1
 max_intra_game_parallelism = 8
 virtual_loss = 1
+tree_type = "MCTSTree" # MCTSTree or DictMCTSTree

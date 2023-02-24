@@ -6,7 +6,7 @@ from ray.util import ActorPool
 
 from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
-from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
+from AmoebaPlayGround.GameExecution.MoveSelector import MOVE_SELECTION_STRATEGIES
 from AmoebaPlayGround.GameExecution.Multithreading.InferenceServer import InferenceServer, InferenceServerWrapper
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
     ParallelProgressPrinterActor
@@ -15,44 +15,53 @@ from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingS
     PlaceholderTrainingSampleGenerator
 
 
-class ParallelGameExecutor(GameExecutor):
-    def __init__(self, learning_agent: MCTSAgent, reference_agent: MCTSAgent, workers_per_inference_server=4,
-                 inference_server_count=3, move_selection_strategy=MoveSelectionStrategy()):
+def init_ray_if_needed():
+    os.environ['RAY_START_REDIS_WAIT_RETRIES'] = '100'
+    if not ray.is_initialized():
+        ray.init()
 
-        if workers_per_inference_server % 2 != 0:
+
+class ParallelGameExecutor(GameExecutor):
+    def __init__(self, learning_agent: MCTSAgent, reference_agent: MCTSAgent, config):
+
+        if config['workers_per_inference_server'] % 2 != 0:
             raise Exception("worker per inference server count should be the multiple of 2")
 
-        os.environ['RAY_START_REDIS_WAIT_RETRIES'] = '100'
-        if not ray.is_initialized():
-            ray.init()
+        init_ray_if_needed()
 
-        self.workers_per_server = workers_per_inference_server
-        self.worker_count = workers_per_inference_server * inference_server_count
+        self.workers_per_server = config['workers_per_inference_server']
+        self.inference_server_count = config['inference_server_count']
+
+        self.worker_count = self.workers_per_server * self.inference_server_count
         self.printer_actor = ParallelProgressPrinterActor.remote(self.worker_count)
 
-        inference_batch_size = learning_agent.get_neural_network_model().config["general"]["inference_batch_size"]
-        self.per_worker_batch_size = inference_batch_size / workers_per_inference_server * 2
+        self.per_worker_batch_size = config["inference_batch_size"] / self.workers_per_server * 2
         print(f"{self.per_worker_batch_size} parallel searches per worker")
 
         intra_game_parallelism = learning_agent.max_intra_game_parallelism
         self.max_parallel_games = int(self.per_worker_batch_size / intra_game_parallelism)
 
-        self.inference_servers = []
-        for i in range(inference_server_count):
-            inference_server = InferenceServer.remote({"agent_1": learning_agent.model.get_packed_copy(),
-                                                       "agent_2": reference_agent.model.get_packed_copy()})
-            self.inference_servers.append(inference_server)
-        self.inference_server_pool = ActorPool(self.inference_servers)
+        self.create_inference_servers(learning_agent, reference_agent)
+        self.create_mcts_workers(config)
 
+    def create_mcts_workers(self, config):
         workers = []
+        move_selection_strategy = MOVE_SELECTION_STRATEGIES[config["move_selection_strategy_type"]]
 
         for server_index, inference_server in enumerate(self.inference_servers):
             for worker_index in range(self.workers_per_server):
                 worker_id = server_index * self.workers_per_server + worker_index
                 worker = GameExecutorWorker.remote(worker_id, self.printer_actor, move_selection_strategy)
                 workers.append(worker)
-
         self.worker_pool = ActorPool(workers)
+
+    def create_inference_servers(self, learning_agent, reference_agent):
+        self.inference_servers = []
+        for i in range(self.inference_server_count):
+            inference_server = InferenceServer.remote({"agent_1": learning_agent.model.get_packed_copy(),
+                                                       "agent_2": reference_agent.model.get_packed_copy()})
+            self.inference_servers.append(inference_server)
+        self.inference_server_pool = ActorPool(self.inference_servers)
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation=False,
                                   print_progress=True):

@@ -60,3 +60,9 @@ class EvaluationMoveSelectionStrategy:
             return self.late_game_move_selector
         else:
             return self.early_game_move_selector
+
+
+MOVE_SELECTION_STRATEGIES = {
+    "MoveSelectionStrategy": MoveSelectionStrategy(),
+    "EvaluationMoveSelectionStrategy": EvaluationMoveSelectionStrategy()
+}

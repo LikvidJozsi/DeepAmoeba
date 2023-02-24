@@ -2,14 +2,23 @@ import glob
 import os
 import pickle
 
+import toml
+
+import SingleThreadGameExecutor
 from AmoebaPlayGround.Agents import AmoebaAgent
-from AmoebaPlayGround.GameExecution.MoveSelector import MoveSelectionStrategy
 from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.Training.Evaluator import EloEvaluator
 from AmoebaPlayGround.Training.Input import get_model_filename
 from AmoebaPlayGround.Training.Logger import Statistics, FileLogger
 from AmoebaPlayGround.Training.Logger import logs_folder
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGenerator, TrainingSampleCollection
+
+CONFIGS_FOLDER = '../Configs/'
+
+GAME_EXECUTORS = {
+    "ParallelGameExecutor": ParallelGameExecutor,
+    "SingleThreadGameExecutor": SingleThreadGameExecutor
+}
 
 
 class AmoebaTrainer:
@@ -22,10 +31,10 @@ class AmoebaTrainer:
         self.learning_agent_with_old_state.name = "old_state_agent"
         self.teaching_agents = teaching_agents
 
-        self.game_executor = ParallelGameExecutor(learning_agent, self.learning_agent_with_old_state,
-                                                  self.config["workers_per_inference_server"],
-                                                  inference_server_count=self.config["inference_server_count"],
-                                                  move_selection_strategy=MoveSelectionStrategy())  # TODO make move selection parametrizable again
+        game_executor_config = self.config["game_executor"]
+        game_executor_class = GAME_EXECUTORS[game_executor_config["game_executor_type"]]
+        self.game_executor = game_executor_class(learning_agent, self.learning_agent_with_old_state,
+                                                 game_executor_config)
 
         self.evaluator = EloEvaluator(self.game_executor, self.map_size)  # TODO pass config
 
@@ -36,12 +45,14 @@ class AmoebaTrainer:
             self.current_episode = self.logger.get_log_episode_count()
             self.evaluator.set_reference_agent(self.learning_agent_with_old_state,
                                                self.logger.get_latest_agent_rating())
+            self.save_config(self.training_id, config)
         else:
             self.training_dataset_generator = TrainingDatasetGenerator()
             self.training_id = get_model_filename()
             self.logger = FileLogger(self.training_id)
             self.current_episode = 0
             self.evaluator.set_reference_agent(self.learning_agent_with_old_state, 1000)
+            self.save_config(self.training_id, config)
 
     def get_latest_training_id(self):
         list_of_files = glob.glob(os.path.join(logs_folder, '*.csv'))
@@ -49,6 +60,14 @@ class AmoebaTrainer:
         latest_file_name_with_extension = os.path.basename(latest_file_path)
         latest_file_name, extension = os.path.splitext(latest_file_name_with_extension)
         return latest_file_name
+
+    def save_config(self, training_id, config):
+        with open(self.get_config_file_path(training_id), "w") as config_file:
+            toml.dump(config, config_file)
+
+    def get_config_file_path(self, training_id):
+        configs_of_training = glob.glob(os.path.join(CONFIGS_FOLDER, training_id + '*.toml'))
+        return os.path.join(CONFIGS_FOLDER, training_id + '_' + str(len(configs_of_training)) + '.toml')
 
     def get_scheduled_value_for_episode(self, schedule, episode):
         if schedule is None:
@@ -82,8 +101,8 @@ class AmoebaTrainer:
         with open("../Datasets/latest_dataset.p", "wb") as file:
             pickle.dump(dataset, file)
 
-    def train(self, batch_size=1, num_episodes=1):
-        while self.current_episode < num_episodes:
+    def train(self):
+        while self.current_episode < self.config["episode_count"]:
             self.logger.log("episode", self.current_episode)
             statistics = Statistics()
             training_samples_for_episode = TrainingSampleCollection()
@@ -95,7 +114,8 @@ class AmoebaTrainer:
                 teaching_agent.set_training_mode()
                 self.learning_agent.set_training_mode()
                 _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
-                    batch_size, self.learning_agent, teaching_agent, self.map_size, evaluation=False,
+                    self.config["games_per_episode"], self.learning_agent, teaching_agent, self.map_size,
+                    evaluation=False,
                     print_progress=True)
 
                 training_samples_from_agent.filter_samples(self.calculate_training_sample_entropy_cutoff(),

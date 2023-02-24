@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from AmoebaPlayGround import Amoeba
 
-Amoeba.map_size = (15, 15)
+Amoeba.map_size = (10, 10)
 
 
 def plot_heatmap(probs):
@@ -64,7 +64,7 @@ def avg_entropy_by_reverse_turn_index(reverse_turn_indices, entropies):
     return sorted_keys, reverse_turn_index_avg_list
 
 
-with open("../Datasets/quickstart_dataset_8x8_600_searches.p", 'rb') as file:
+with open("../Datasets/quickstart_dataset_10x10_300_searches.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1
