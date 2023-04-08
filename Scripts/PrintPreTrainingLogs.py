@@ -5,7 +5,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-training_name = "2023-02-23_20-45-22_pretrained"
+training_name = "2023-02-25_18-35-03_pretrained"
 training_name = None
 
 if training_name is None:

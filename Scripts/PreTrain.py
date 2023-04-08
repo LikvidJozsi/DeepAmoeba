@@ -11,7 +11,7 @@ from AmoebaPlayGround.Training.Evaluator import EloEvaluator, ReferenceAgent
 from AmoebaPlayGround.Training.Logger import ConsoleLogger
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingDatasetGenerator
 
-map_size = (10, 10)
+map_size = (12, 12)
 
 training_name = None
 
@@ -41,7 +41,7 @@ neural_network_config = {
             "reg": 5e-5,
             "learning_rate": 0.8e-3,
             "weights_file": "2022-11-15_22-15-32_pretrained",
-            "loss_weights": [1, 12]  # good rule of thumb is 1 for policy and log2(np.prod(board_size)) for value
+            "loss_weights": [1, 3]  # good rule of thumb is 1 for policy and log2(np.prod(board_size)) for value
         }
     }
 }
@@ -77,7 +77,7 @@ logger = PreTrainingLogger()
 evaluator.evaluate_agent(learning_agent, logger)
 
 dataset_size = 200000
-with open("../Datasets/quickstart_dataset_10x10_300_searches.p", "rb") as file:
+with open("../Datasets/quickstart_dataset_12x12_400_searches.p", "rb") as file:
     dataset_generator = TrainingDatasetGenerator(pickle.load(file))
     inputs, output_policies, output_values = dataset_generator.get_dataset(dataset_size)
     output_policies = output_policies.reshape(output_policies.shape[0], -1)

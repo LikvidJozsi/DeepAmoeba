@@ -4,11 +4,11 @@ from AmoebaPlayGround.Agents.MCTS.MCTSAgent import MCTSAgent
 from AmoebaPlayGround.Agents.TensorflowModels import ConstantModel
 from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
 
-map_size = (10, 10)
+map_size = (12, 12)
 
 config = {
     "mcts": {
-        "search_count": 300,
+        "search_count": 400,
         "max_intra_game_parallelism": 8,
         "exploration_rate": 1.4,
         "search_batch_size": 400,  # TODO refactor this config out, it shouldn't be a config, just function parameter
@@ -36,8 +36,8 @@ _, training_samples, statistics = game_executor.play_games_between_agents(game_c
                                                                           evaluation=False,
                                                                           print_progress=True)
 
-with open("../Datasets/quickstart_dataset_10x10_300_searches.p", 'wb') as file:
+with open("../Datasets/quickstart_dataset_12x12_400_searches.p", 'wb') as file:
     pickle.dump(training_samples, file)
 
-with open("../Datasets/quickstart_dataset_10x10_300_searches_statistics.p", 'wb') as file:
+with open("../Datasets/quickstart_dataset_12x12_400_searches_statistics.p", 'wb') as file:
     pickle.dump(statistics, file)

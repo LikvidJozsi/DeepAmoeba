@@ -64,16 +64,25 @@ def avg_entropy_by_reverse_turn_index(reverse_turn_indices, entropies):
     return sorted_keys, reverse_turn_index_avg_list
 
 
-with open("../Datasets/quickstart_dataset_10x10_300_searches.p", 'rb') as file:
+with open("../Datasets/quickstart_dataset_12x12_400_searches.p", 'rb') as file:
     dataset = pickle.load(file)
     plot_count = 0
     max_plot_count = 1
     entropies = []
+
     progress_bar = tqdm(total=len(dataset.board_states))
     for index, sample in enumerate(dataset.move_probabilities):
         progress_bar.update(1)
         entropy, plot_count = calculate_entropy(sample, plot_count, max_plot_count, index)
         entropies.append(entropy)
+
+    count_win_value = 0
+    for index, value in enumerate(dataset.rewards):
+        if value >= 0.99:
+            count_win_value += 1
+
+    print(count_win_value)
+    print(count_win_value / len(dataset.board_states))
 
     num_bins = 40
     n, bins, patches = plt.hist(entropies, num_bins, facecolor='blue', alpha=0.5)
