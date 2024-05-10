@@ -135,7 +135,7 @@ class AmoebaGame:
         if len(self.history) == 0:
             return False
         last_action = self.history[-1]
-        player_won = check_victory_condition(self.map.cells, np.array(last_action, dtype=int))
+        player_won = check_victory_condition(self.map.cells, np.array(last_action, dtype=np.int32))
         is_draw = self.map.occupied_cells == np.prod(self.map.cells.shape)
         if player_won:
             self.winner = self.previous_player
@@ -148,5 +148,5 @@ class AmoebaGame:
     @staticmethod
     def check_game_ended(game_board: AmoebaBoard, move):
         return check_victory_condition(game_board.cells,
-                                       np.array(move, dtype=int)), game_board.occupied_cells == np.prod(
+                                       np.array(move, dtype=np.int32)), game_board.occupied_cells == np.prod(
             game_board.cells.shape)

@@ -4,7 +4,7 @@ import pickle
 
 import toml
 
-import SingleThreadGameExecutor
+from AmoebaPlayGround.GameExecution.SingleThreadGameExecutor import SingleThreadGameExecutor
 from AmoebaPlayGround.Agents import AmoebaAgent
 from AmoebaPlayGround.GameExecution.Multithreading.GameParallelizer import ParallelGameExecutor
 from AmoebaPlayGround.Training.Evaluator import EloEvaluator

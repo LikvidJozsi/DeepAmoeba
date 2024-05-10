@@ -17,6 +17,9 @@ from tensorflow.python.keras.layers import Dropout, LeakyReLU
 from tensorflow.python.keras.regularizers import l2
 from AmoebaPlayGround.Training.TrainingSampleGenerator import TrainingSampleCollection, TrainingDatasetGenerator
 from tensorflow.keras import mixed_precision
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+
 
 models_folder = '../Models/'
 
