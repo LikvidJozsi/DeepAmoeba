@@ -149,7 +149,7 @@ class NeuralNetworkModel(ABC):
         input = self.format_input(board_states, players)
         if len(input) == 0:
             print("biggus problemus")
-        output_2d, value = self.model.predict(input, batch_size=len(input))
+        output_2d, value = self.model.predict(input, batch_size=len(input), verbose=0)
         output_2d = output_2d.reshape(-1, board_size[0], board_size[1])
         return output_2d, value
 
