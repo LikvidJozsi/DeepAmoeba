@@ -79,7 +79,7 @@ evaluator.evaluate_agent(learning_agent, logger)
 dataset_size = 200000
 with open("../Datasets/quickstart_dataset_12x12_400_searches.p", "rb") as file:
     dataset_generator = TrainingDatasetGenerator(pickle.load(file))
-    inputs, output_policies, output_values = dataset_generator.get_dataset(dataset_size)
+    inputs, output_policies, output_values, sample_weights = dataset_generator.get_dataset(dataset_size)
     output_policies = output_policies.reshape(output_policies.shape[0], -1)
 
 print(len(inputs))
@@ -88,6 +88,7 @@ evaluation_split_index = int(len(inputs) * 4 / 5)
 training_inputs = inputs[:evaluation_split_index]
 training_output_policies = output_policies[:evaluation_split_index]
 training_output_values = output_values[:evaluation_split_index]
+training_sample_weights = sample_weights[:evaluation_split_index]
 
 evaluation_inputs = inputs[evaluation_split_index:]
 evaluation_output_policies = output_policies[evaluation_split_index:]

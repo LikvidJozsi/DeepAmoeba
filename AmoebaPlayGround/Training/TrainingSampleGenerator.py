@@ -38,7 +38,7 @@ class TrainingDatasetGenerator:
             cumulative_size += collection_size
             self.cumulative_dataset_sizes[index] = cumulative_size
 
-    def get_dataset(self, desired_dataset_size=200000):
+    def get_dataset(self, desired_dataset_size=200000, fraction_won_by_player_1=0.5):
         self.update_dataset_sizes()
         sample_count = self.get_sample_count()
         dataset_size = min(sample_count, desired_dataset_size)
@@ -49,15 +49,20 @@ class TrainingDatasetGenerator:
         dataset_board_states = np.empty((dataset_size,) + board_size + (2,), dtype=np.float32)
         dataset_move_probabilities = np.empty((dataset_size,) + board_size, dtype=np.float32)
         dataset_rewards = np.empty((dataset_size,), dtype=np.float32)
+        sample_weights = np.empty((dataset_size,), dtype=np.float32)
+        second_player_won_sample_weight = max(min(fraction_won_by_player_1, 0.9), 0.1)
 
         for dataset_index, sample_index in enumerate(sample_indexes):
-            (board_state, probabilities, reward, _) = self.get_sample(sample_index)
+            (board_state, probabilities, reward, _, winner) = self.get_sample(sample_index)
             dataset_board_states[dataset_index, :, :, 0] = np.array(board_state == 1, dtype=np.float32)
             dataset_board_states[dataset_index, :, :, 1] = np.array(board_state == -1, dtype=np.float32)
             dataset_move_probabilities[dataset_index, :, :] = probabilities
             dataset_rewards[dataset_index] = reward
 
-        return dataset_board_states, dataset_move_probabilities, dataset_rewards
+            sample_weights[
+                dataset_index] = second_player_won_sample_weight if winner == Player.O else 1 - second_player_won_sample_weight
+
+        return dataset_board_states, dataset_move_probabilities, dataset_rewards, sample_weights
 
     def get_sample(self, sample_index):
         base_index = sample_index // self.symmetry_count
@@ -71,7 +76,7 @@ class TrainingDatasetGenerator:
         raise Exception("index out of bounds")
 
     def get_symmetry(self, sample, symmetry_index):
-        board_state, probabilities, reward, reverse_index = sample
+        board_state, probabilities, reward, reverse_index, winner = sample
         board_state = np.copy(board_state)
         probabilities = np.copy(probabilities)
         if symmetry_index >= 4:
@@ -80,7 +85,7 @@ class TrainingDatasetGenerator:
         rotation_index = symmetry_index % 4
         board_state = np.rot90(board_state, rotation_index)
         probabilities = np.rot90(probabilities, rotation_index)
-        return (board_state, probabilities, reward, reverse_index)
+        return (board_state, probabilities, reward, reverse_index, winner)
 
     def get_intra_dataset_index(self, dataset_index, sample_index):
         if dataset_index == 0:
@@ -91,7 +96,8 @@ class TrainingDatasetGenerator:
 
 
 class TrainingSampleCollection:
-    def __init__(self, board_states=None, move_probabilities=None, rewards=None, reverse_turn_indexes=None):
+    def __init__(self, board_states=None, move_probabilities=None, rewards=None, reverse_turn_indexes=None,
+                 winner=None):
         if rewards is None:
             rewards = []
         if board_states is None:
@@ -100,10 +106,13 @@ class TrainingSampleCollection:
             reverse_turn_indexes = []
         if move_probabilities is None:
             move_probabilities = []
+        if winner is None:
+            winner = []
         self.board_states = board_states
         self.move_probabilities = move_probabilities
         self.rewards = rewards
         self.reverse_turn_indexes = reverse_turn_indexes
+        self.winner = winner
 
     def get_length(self):
         return len(self.rewards)
@@ -113,19 +122,21 @@ class TrainingSampleCollection:
 
     def get(self, index):
         return self.board_states[index], self.move_probabilities[index], self.rewards[index], self.reverse_turn_indexes[
-            index]
+            index], self.winner[index]
 
     def extend(self, training_sample_collection):
         self.board_states.extend(training_sample_collection.board_states)
         self.move_probabilities.extend(training_sample_collection.move_probabilities)
         self.rewards.extend(training_sample_collection.rewards)
         self.reverse_turn_indexes.extend(training_sample_collection.reverse_turn_indexes)
+        self.winner.extend(training_sample_collection.winner)
 
-    def add_sample(self, board_state, move_probability, reward, reverse_turn_indexes):
+    def add_sample(self, board_state, move_probability, reward, reverse_turn_indexes, winner):
         self.board_states.append(board_state)
         self.move_probabilities.append(move_probability)
         self.rewards.append(reward)
         self.reverse_turn_indexes.append(reverse_turn_indexes)
+        self.winner.append(winner)
 
     def filter_samples(self, entropy_cutoff=None, turn_cutoff=None):
         if entropy_cutoff is None:
@@ -136,18 +147,21 @@ class TrainingSampleCollection:
         original_move_probabilities = self.move_probabilities
         original_rewards = self.rewards
         original_reverse_turn_indexes = self.reverse_turn_indexes
+        original_winner = self.winner
         self.board_states = []
         self.move_probabilities = []
         self.rewards = []
         self.reverse_turn_indexes = []
+        self.winner = []
 
-        for board_state, probability_map, reward, reverse_turn_index in zip(original_board_states,
-                                                                            original_move_probabilities,
-                                                                            original_rewards,
-                                                                            original_reverse_turn_indexes):
+        for board_state, probability_map, reward, reverse_turn_index, winner in zip(original_board_states,
+                                                                                    original_move_probabilities,
+                                                                                    original_rewards,
+                                                                                    original_reverse_turn_indexes,
+                                                                                    original_winner):
             entropy = self.calculate_entropy(probability_map)
             if entropy < entropy_cutoff and reverse_turn_index <= turn_cutoff:
-                self.add_sample(board_state, probability_map, reward, reverse_turn_index)
+                self.add_sample(board_state, probability_map, reward, reverse_turn_index, winner)
 
     def calculate_entropy(self, probabilites):
         probabilites = np.maximum(probabilites.flatten(), 1e-8)
@@ -182,6 +196,8 @@ class SymmetricTrainingSampleGenerator(PlaceholderTrainingSampleGenerator):
 
     def get_training_data(self, winner):
         rewards = list(
-            map(lambda player: 1 if player == winner else 0 if winner == Player.NOBODY else -1, self.players))
+            map(lambda player: 1 if player == winner else (0 if winner == Player.NOBODY else -1), self.players))
         reverse_turn_indexes = np.arange(len(self.board_states) - 1, -1, -1)
-        return TrainingSampleCollection(self.board_states, self.move_probabilities, rewards, reverse_turn_indexes)
+        winner_list = [winner] * len(self.board_states)
+        return TrainingSampleCollection(self.board_states, self.move_probabilities, rewards, reverse_turn_indexes,
+                                        winner_list)

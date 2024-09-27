@@ -129,7 +129,7 @@ class AmoebaTrainer:
                 self.learning_agent_with_old_state.get_neural_network_model())
             statistics.log(self.logger)
             print('Training agent:')
-            self.train_learing_agent()
+            self.train_learing_agent(statistics)
 
             print('Evaluating agent:')
             self.learning_agent.set_evaluation_mode()
@@ -149,7 +149,8 @@ class AmoebaTrainer:
         self.save_latest_dataset(self.training_dataset_generator)
         self.current_episode += 1
 
-    def train_learing_agent(self):
-        train_history = self.learning_agent.model.train(self.training_dataset_generator)
+    def train_learing_agent(self, statistics):
+        train_history = self.learning_agent.model.train(self.training_dataset_generator,
+                                                        fraction_won_by_player_1=statistics.get_fraction_won_by_player_one())
         last_loss = train_history.history['loss'][-1]
         self.logger.log("loss", last_loss)

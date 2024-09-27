@@ -133,15 +133,17 @@ class NeuralNetworkModel(ABC):
         return numeric_representation
 
     def train(self, dataset_generator: TrainingDatasetGenerator,
-              validation_dataset: TrainingSampleCollection = None):
+              validation_dataset: TrainingSampleCollection = None,
+              fraction_won_by_player_1=0.5):
         print('number of training samples: ' + str(dataset_generator.get_sample_count()))
-        inputs, output_policies, output_values = dataset_generator.get_dataset(
-            self.config["general"]["training_dataset_max_size"])
+        inputs, output_policies, output_values, sample_weights = dataset_generator.get_dataset(
+            self.config["general"]["training_dataset_max_size"], fraction_won_by_player_1)
         output_policies = output_policies.reshape(output_policies.shape[0], -1)
         return self.model.fit(x=inputs, y=[output_policies, output_values],
                               epochs=self.config["general"]["training_epochs"],
                               shuffle=True,
-                              verbose=1, batch_size=self.config["general"]["training_batch_size"])
+                              verbose=1, batch_size=self.config["general"]["training_batch_size"],
+                              sample_weight=sample_weights)
 
     # TODO this is amoeba specific, refactor
     def predict(self, board_states, players):
