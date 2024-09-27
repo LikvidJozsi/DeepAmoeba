@@ -25,6 +25,7 @@ class Statistics:
         self.aggregate_fraction_visited_once = 0
         self.aggregate_fraction_visited_twice = 0
         self.aggregate_fraction_visited_at_least_10_times = 0
+        self.top_1_move_search_count = 0
 
     def get_average_game_length(self):
         if self.game_count > 0:
@@ -34,24 +35,26 @@ class Statistics:
 
     def log(self, logger):
         logger.log("max_search_depth", self.max_search_depth)
-        avg_search_depth = self.aggregate_search_depth / self.searches_done if self.searches_done > 0 else 0
+        avg_search_depth = self.aggregate_search_depth / self.searches_done
         logger.log("avg_search_depth", avg_search_depth)
-        avg_game_length = self.aggregate_game_length / self.game_count if self.game_count > 0 else 0
+        avg_game_length = self.aggregate_game_length / self.game_count
         logger.log("avg_game_length", avg_game_length)
-        avg_node_count = self.aggregate_search_tree_size / self.step_count if self.step_count > 0 else 0
+        avg_node_count = self.aggregate_search_tree_size / self.step_count
         logger.log("avg_node_count", avg_node_count)
-        avg_fraction_not_visited = self.aggregate_fraction_not_visited / self.step_count if self.step_count > 0 else 0
+        avg_fraction_not_visited = self.aggregate_fraction_not_visited / self.step_count
         logger.log("avg_fraction_not_visited", avg_fraction_not_visited)
-        avg_fraction_visited_once = self.aggregate_fraction_visited_once / self.step_count if self.step_count > 0 else 0
+        avg_fraction_visited_once = self.aggregate_fraction_visited_once / self.step_count
         logger.log("avg_fraction_visited_once", avg_fraction_visited_once)
-        avg_fraction_visited_twice = self.aggregate_fraction_visited_twice / self.step_count if self.step_count > 0 else 0
+        avg_fraction_visited_twice = self.aggregate_fraction_visited_twice / self.step_count
         logger.log("avg_fraction_visited_twice", avg_fraction_visited_twice)
-        avg_fraction_visited_at_least_10_times = self.aggregate_fraction_visited_at_least_10_times / self.step_count if self.step_count > 0 else 0
+        avg_fraction_visited_at_least_10_times = self.aggregate_fraction_visited_at_least_10_times / self.step_count
         logger.log("avg_fraction_visited_at_least_10_times", avg_fraction_visited_at_least_10_times)
-        fraction_won_by_player_1 = self.games_won_by_first_player / self.game_count if self.game_count > 0 else 0
+        fraction_won_by_player_1 = self.get_fraction_won_by_player_one()
         logger.log("fraction_won_by_player_1", fraction_won_by_player_1)
-        fraction_draw = self.draw_games / self.game_count if self.game_count > 0 else 0
+        fraction_draw = self.draw_games / self.game_count
         logger.log("fraction_draw", fraction_draw)
+        top_1_move_average_search_count = self.top_1_move_search_count / self.step_count
+        logger.log("top_1_move_average_search_count", top_1_move_average_search_count)
 
     def merge_statistics(self, other_statistics):
         self.max_search_depth = max(self.max_search_depth, other_statistics.max_search_depth)
@@ -69,6 +72,7 @@ class Statistics:
         self.aggregate_fraction_visited_once += other_statistics.aggregate_fraction_visited_once
         self.aggregate_fraction_visited_twice += other_statistics.aggregate_fraction_visited_twice
         self.aggregate_fraction_visited_at_least_10_times += other_statistics.aggregate_fraction_visited_at_least_10_times
+        self.top_1_move_search_count += other_statistics.top_1_move_search_count
 
     def add_win_statistics(self, games_won_by_player_1, games_won_by_player_2, draw_games, games_won_by_x):
         self.games_won_by_player_1 = games_won_by_player_1
@@ -102,6 +106,10 @@ class Statistics:
             self.aggregate_fraction_visited_twice += np.count_nonzero(root_node_visit_counts == 2) / valid_move_count
             self.aggregate_fraction_visited_at_least_10_times += np.count_nonzero(
                 root_node_visit_counts >= 10) / valid_move_count
+            self.top_1_move_search_count = np.max(root_node_visit_counts)
+
+    def get_fraction_won_by_player_one(self):
+        return self.games_won_by_first_player / self.game_count if self.game_count > 0 else 0
 
     def __str__(self):
         if self.searches_done > 0:
