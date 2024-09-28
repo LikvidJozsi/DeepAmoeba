@@ -71,3 +71,10 @@ plt.plot(np.arange(len(df)), df['fraction_draw'], 'b', label="self-play draws")
 plt.title("hand_written_agent winrate")
 plt.legend()
 plt.show()
+
+
+
+plt.plot(np.arange(len(df)), df['top_1_move_average_search_count'], 'r', label="top_1_move_average_search_count")
+plt.title("top 1 move average search count")
+plt.legend()
+plt.show()
