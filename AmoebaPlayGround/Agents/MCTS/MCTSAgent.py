@@ -76,7 +76,9 @@ class MCTSAgent(AmoebaAgent, ABC):
         return agent_copy
 
     def get_copy(self):
-        return copy.copy(self)
+        new_instance = copy.copy(self)
+        new_instance.model = self.model.get_copy()
+        return new_instance
 
     def get_step(self, games: List[AmoebaGame], player):
         search_trees = self.get_search_trees_for_games(games)
