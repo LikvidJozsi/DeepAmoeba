@@ -2,7 +2,6 @@ import os
 from os.path import exists
 
 import numpy as np
-from typing.io import IO
 
 logs_folder = '../Logs/'
 field_separator = ','
@@ -106,7 +105,7 @@ class Statistics:
             self.aggregate_fraction_visited_twice += np.count_nonzero(root_node_visit_counts == 2) / valid_move_count
             self.aggregate_fraction_visited_at_least_10_times += np.count_nonzero(
                 root_node_visit_counts >= 10) / valid_move_count
-            self.top_1_move_search_count = np.max(root_node_visit_counts)
+            self.top_1_move_search_count += np.max(root_node_visit_counts)
 
     def get_fraction_won_by_player_one(self):
         return self.games_won_by_first_player / self.game_count if self.game_count > 0 else 0
@@ -174,7 +173,7 @@ class FileLogger(Logger):
             if field_name not in headers:
                 raise Exception("Field name not found among headers: " + field_name)
 
-    def _write_line(self, file: IO, fields):
+    def _write_line(self, file, fields):
         fields_string = field_separator.join(fields)
         file.write(fields_string + "\n")
 
