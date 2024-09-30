@@ -48,4 +48,4 @@ config = {
 neural_agent = MCTSAgent(model=neural_network_model, config=config)
 hand_written_agent = HandWrittenAgent()
 game = Amoeba.AmoebaGame(view=graphical_view, map_size=map_size)
-game.play_game(neural_agent, graphical_view, neural_agent)
+game.play_game(hand_written_agent, neural_agent, highlight_type=Amoeba.HighlightType.SEARCH , highlight_agent=neural_agent)

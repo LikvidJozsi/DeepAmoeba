@@ -1,6 +1,8 @@
 import copy
 import random
 from typing import List
+from enum import Enum
+import time
 
 import numpy as np
 
@@ -16,6 +18,11 @@ class Move:
         self.board_state = board_state
         self.step = step
         self.player = player
+
+
+class HighlightType(Enum):
+    POLICY = 1
+    SEARCH = 2
 
 
 class AmoebaGame:
@@ -68,25 +75,39 @@ class AmoebaGame:
         self.map.set((column, row), X_SYMBOL)
         self.history.append((column, row))
 
-    def play_game(self, x_agent, o_agent, hightlight_agent=None):
+    def play_game(self, x_agent, o_agent, highlight_type: HighlightType = None, highlight_agent=None,
+                  turn_delay_sec=0):
+        if highlight_type == HighlightType.POLICY and highlight_agent is None:
+            raise Exception("You have to pass a highlight MCTS agent for policy highlighting")
+
         agents = [x_agent, o_agent]
         current_agent_index = 0
         move_selector = MaximalMoveSelector()
-        while (not self.has_game_ended()):
+        while not self.has_game_ended():
             current_agent = agents[current_agent_index]
-
-            if hightlight_agent is not None:
-                output_1d, value = hightlight_agent.model.predict([self.map.cells], [self.get_next_player()])
-                board_size = self.map.get_shape()
-                output_2d = output_1d.reshape(-1, board_size[0], board_size[1])
-                color_intensities = np.array(output_2d[0] / np.max(output_2d[0]) * 255, dtype=int)
-                self.view.display_background_color_intensities(color_intensities)
-                self.view.set_additional_info(f"value: {value[0][0]}")
-            action_probabilities, step_statistics = current_agent.get_step([self], self.get_next_player())
+            action_probabilities, _ = current_agent.get_step([self], self.get_next_player())
+            if highlight_type is not None:
+                self.highlight(highlight_type, highlight_agent, action_probabilities)
             action = move_selector.select_move(action_probabilities[0])
+            time.sleep(turn_delay_sec)
             print(action)
             self.step(action)
             current_agent_index = (current_agent_index + 1) % 2
+
+    def highlight(self, highlight_type, hightlight_agent, search_based_probabilities):
+        match  highlight_type:
+            case HighlightType.POLICY:
+                policy_probabilities_1d, value = hightlight_agent.model.predict([self.map.cells], [self.get_next_player()])
+                board_size = self.map.get_shape()
+                move_probabilities = policy_probabilities_1d.reshape(-1, board_size[0], board_size[1])
+                self.view.set_additional_info(f"value: {value[0][0]}")
+            case HighlightType.SEARCH:
+                move_probabilities = search_based_probabilities
+                self.view.set_additional_info(f"best move probability: {np.max(move_probabilities):.{2}f}")
+            case _:
+                raise Exception("Invalid highlight type")
+        color_intensities = np.array(move_probabilities[0] / np.max(move_probabilities[0]) * 255, dtype=int)
+        self.view.display_background_color_intensities(color_intensities)
 
     def get_board_of_next_player(self):
         return self.map.get_numeric_representation_for_player(self.get_next_player())
