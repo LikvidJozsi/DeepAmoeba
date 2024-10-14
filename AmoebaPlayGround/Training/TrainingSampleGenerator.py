@@ -38,7 +38,7 @@ class TrainingDatasetGenerator:
             cumulative_size += collection_size
             self.cumulative_dataset_sizes[index] = cumulative_size
 
-    def get_dataset(self, desired_dataset_size=200000, fraction_won_by_player_1=0.5):
+    def get_dataset(self, desired_dataset_size=200000, fraction_won_by_player_1=0.5, fraction_draw=0.1):
         self.update_dataset_sizes()
         sample_count = self.get_sample_count()
         dataset_size = min(sample_count, desired_dataset_size)
@@ -50,7 +50,6 @@ class TrainingDatasetGenerator:
         dataset_move_probabilities = np.empty((dataset_size,) + board_size, dtype=np.float32)
         dataset_rewards = np.empty((dataset_size,), dtype=np.float32)
         sample_weights = np.empty((dataset_size,), dtype=np.float32)
-        second_player_won_sample_weight = max(min(fraction_won_by_player_1, 0.9), 0.1)
 
         for dataset_index, sample_index in enumerate(sample_indexes):
             (board_state, probabilities, reward, _, winner) = self.get_sample(sample_index)
@@ -59,10 +58,20 @@ class TrainingDatasetGenerator:
             dataset_move_probabilities[dataset_index, :, :] = probabilities
             dataset_rewards[dataset_index] = reward
 
-            sample_weights[
-                dataset_index] = second_player_won_sample_weight if winner == Player.O else 1 - second_player_won_sample_weight
+            match winner:
+                case Player.O:
+                    sample_weights[dataset_index] = self.limit(fraction_won_by_player_1+fraction_draw)
+                case Player.X:
+                    sample_weights[dataset_index] = self.limit(1-fraction_won_by_player_1-fraction_draw)
+                case Player.NOBODY:
+                    sample_weights[dataset_index] = 0.5
+                case _:
+                    print("Problemo captn")
 
         return dataset_board_states, dataset_move_probabilities, dataset_rewards, sample_weights
+
+    def limit(self, value,min_value=0.05,max_value=0.95):
+        return max(min(value, max_value), min_value)
 
     def get_sample(self, sample_index):
         base_index = sample_index // self.symmetry_count

@@ -134,10 +134,10 @@ class NeuralNetworkModel(ABC):
 
     def train(self, dataset_generator: TrainingDatasetGenerator,
               validation_dataset: TrainingSampleCollection = None,
-              fraction_won_by_player_1=0.5):
+              fraction_won_by_player_1=0.5, fraction_draw = 0.1):
         print('number of training samples: ' + str(dataset_generator.get_sample_count()))
         inputs, output_policies, output_values, sample_weights = dataset_generator.get_dataset(
-            self.config["general"]["training_dataset_max_size"], fraction_won_by_player_1)
+            self.config["general"]["training_dataset_max_size"], fraction_won_by_player_1, fraction_draw)
         output_policies = output_policies.reshape(output_policies.shape[0], -1)
         return self.model.fit(x=inputs, y=[output_policies, output_values],
                               epochs=self.config["general"]["training_epochs"],
