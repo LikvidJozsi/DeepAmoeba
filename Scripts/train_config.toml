@@ -1,8 +1,8 @@
-map_size = [15, 15]
+map_size = [10, 10]
 
 [trainer]
-resume_previous_training = false
-sample_episode_window_width_schedule = [[0, 1], [2, 2], [6, 3]]
+resume_previous_training = true
+sample_episode_window_width_schedule = [[0, 1], [10, 2]]
 # training_sample_entropy_cutoff_schedule = None
 # training_sample_turn_cutoff_schedule = None
 episode_count = 35
@@ -11,29 +11,29 @@ games_per_episode = 1500
 [trainer.game_executor]
 game_executor_type = "ParallelGameExecutor" # ParallelGameExecutor or SingleThreadGameExecutor
 workers_per_inference_server = 4
-inference_server_count = 3
+inference_server_count = 4
 inference_batch_size = 1500
 move_selection_strategy_type = "MoveSelectionStrategy" # MoveSelectionStrategy or EvaluationMoveSelectionStrategy
 
 
 [neural_network.general]
-training_batch_size = 4
-training_dataset_max_size = 200000
-training_epochs = 1
+training_batch_size = 16
+training_dataset_max_size = 400000
+training_epochs = 3
 
 [neural_network.graph]
 first_convolution_size = [3, 3]
 network_depth = 6
 dropout = 0.0
 reg = 1e-3
-learning_rate = 0.8e-3
-weights_file = "2023-01-29_13-51-02_pretrained"
-loss_weights = [1, 12] # left: policy, right: value
+learning_rate = 0.8e-4
+weights_file = "2024-05-23_22-28-19_pretrained"
+loss_weights = [1, 4] # left: policy, right: value
 
 [mcts]
-search_count = 100
-exploration_rate = 1.4
-search_batch_size = 400
+search_count = 600
+exploration_rate = 2.0
+search_batch_size = 400 # this is just a default, it is overriden in parallel runs based on other config
 training_epochs = 4
 dirichlet_ratio = 0.1
 max_intra_game_parallelism = 8
