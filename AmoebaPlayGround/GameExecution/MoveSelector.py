@@ -36,7 +36,7 @@ class DistributionMoveSelector(MoveSelector):
 class MoveSelectionStrategy:
 
     def __init__(self, early_game_move_selector=DistributionMoveSelector(1),
-                 late_game_move_selector=DistributionMoveSelector(1 / 16), late_game_start_turn=15):
+                 late_game_move_selector=DistributionMoveSelector(1 / 16), late_game_start_turn=5):
         self.early_game_move_selector = early_game_move_selector
         self.late_game_move_selector = late_game_move_selector
         self.late_game_start_turn = late_game_start_turn
@@ -49,7 +49,7 @@ class MoveSelectionStrategy:
 
 
 class EvaluationMoveSelectionStrategy:
-    def __init__(self, early_game_move_selector=DistributionMoveSelector(1),
+    def __init__(self, early_game_move_selector=DistributionMoveSelector(1/4),
                  late_game_move_selector=DistributionMoveSelector(1 / 16), late_game_start_turn=15):
         self.early_game_move_selector = early_game_move_selector
         self.late_game_move_selector = late_game_move_selector
