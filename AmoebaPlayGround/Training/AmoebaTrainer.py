@@ -151,6 +151,8 @@ class AmoebaTrainer:
 
     def train_learing_agent(self, statistics):
         train_history = self.learning_agent.model.train(self.training_dataset_generator,
-                                                        fraction_won_by_player_1=statistics.get_fraction_won_by_player_one())
-        last_loss = train_history.history['loss'][-1]
-        self.logger.log("loss", last_loss)
+                                                        fraction_won_by_player_1=statistics.get_fraction_won_by_player_one(),
+                                                        fraction_draw=statistics.get_fraction_draw())
+        self.logger.log("loss", train_history.history['loss'][-1])
+        self.logger.log("policy_loss", train_history.history['policy_loss'][-1])
+        self.logger.log("value_loss", train_history.history['value_loss'][-1])

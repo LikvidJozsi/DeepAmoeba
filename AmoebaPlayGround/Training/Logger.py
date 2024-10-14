@@ -108,7 +108,10 @@ class Statistics:
             self.top_1_move_search_count += np.max(root_node_visit_counts)
 
     def get_fraction_won_by_player_one(self):
-        return self.games_won_by_first_player / self.game_count if self.game_count > 0 else 0
+        return self.games_won_by_first_player / self.game_count
+
+    def get_fraction_draw(self):
+        return self.draw_games / self.game_count
 
     def __str__(self):
         if self.searches_done > 0:
