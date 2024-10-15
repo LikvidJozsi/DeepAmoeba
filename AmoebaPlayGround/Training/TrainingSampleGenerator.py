@@ -60,7 +60,7 @@ class TrainingDatasetGenerator:
 
             match winner:
                 case Player.O:
-                    sample_weights[dataset_index] = self.limit(fraction_won_by_player_1+fraction_draw)
+                    sample_weights[dataset_index] = self.limit(fraction_won_by_player_1)
                 case Player.X:
                     sample_weights[dataset_index] = self.limit(1-fraction_won_by_player_1-fraction_draw)
                 case Player.NOBODY:
