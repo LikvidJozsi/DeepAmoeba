@@ -13,7 +13,7 @@ with open("train_config.toml", "r") as config_file:
 
 neural_network_model = ResNetLike(config)
 neural_network_model.create_model()
-#neural_network_model.load_weights(config["neural_network"]["graph"]["weights_file"])  # TODO refactor this
+neural_network_model.load_weights(config["neural_network"]["graph"]["weights_file"])  # TODO refactor this
 neural_network_model.print_model_summary()
 
 learning_agent = MCTSAgent(model=neural_network_model, config=config)
