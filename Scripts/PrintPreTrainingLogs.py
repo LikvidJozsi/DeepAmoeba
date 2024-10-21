@@ -1,18 +1,22 @@
 import glob
 import os
 import pickle
+import argparse
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-training_name = "2023-02-25_18-35-03_pretrained"
-training_name = None
+parser = argparse.ArgumentParser("PrintTrainingLogs")
+parser.add_argument("--log-file", help="Name of the logfile (within the logs folder) to extract data from, latest is taken when not given",
+                    type=str)
+args = parser.parse_args()
 
-if training_name is None:
+if args.log_file is None:
     list_of_files = glob.glob(os.path.join("../PreTrainingLogs/", '*.p'))
     training_name = max(list_of_files, key=os.path.getctime)
 else:
-    training_name = "../PreTrainingLogs/" + training_name + ".p"
+    training_name = "../PreTrainingLogs/" + args.log_file + ".p"
 
 with open(training_name, 'rb') as file:
     metrics = pickle.load(file)
