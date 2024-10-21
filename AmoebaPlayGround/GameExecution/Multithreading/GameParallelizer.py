@@ -122,7 +122,8 @@ class ParallelGameExecutor(GameExecutor):
                            print_progress):
         workloads = []
 
-        games_per_group = max(1, int(game_count / self.worker_count))
+        games_per_group = max(1, int(game_count / self.worker_count)) # TODO handle case where there are more workers than games
+        leftovers = max(0, game_count - games_per_group * self.worker_count)
         for inference_server in self.inference_servers:
             if type(agent_1) is MCTSAgent:
                 agent_1 = self.get_modified_agent_copy(agent_1, "agent_1", inference_server)
@@ -130,13 +131,23 @@ class ParallelGameExecutor(GameExecutor):
                 agent_2 = self.get_modified_agent_copy(agent_2, "agent_2", inference_server)
 
             for _ in range(int(self.workers_per_server / 2)):
+                if leftovers > 0:
+                    games_in_group = games_per_group + 1
+                    leftovers -= 1
+                else:
+                    games_in_group = games_per_group
                 workloads.append(
                     (
-                        games_per_group, max_parallel_games, map_size, agent_1, agent_2, evaluation, False,
+                        games_in_group, max_parallel_games, map_size, agent_1, agent_2, evaluation, False,
                         print_progress))
             for _ in range(int(self.workers_per_server / 2)):
+                if leftovers > 0:
+                    games_in_group = games_per_group + 1
+                    leftovers -= 1
+                else:
+                    games_in_group = games_per_group
                 workloads.append(
-                    (games_per_group, max_parallel_games, map_size, agent_2, agent_1, evaluation, True, print_progress))
+                    (games_in_group, max_parallel_games, map_size, agent_2, agent_1, evaluation, True, print_progress))
         return workloads
 
 
