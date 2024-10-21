@@ -9,7 +9,7 @@ ReferenceAgent = collections.namedtuple('ReferenceAgent', 'name instance evaluat
 fix_reference_agents = [ReferenceAgent(name='random_agent', instance=RandomAgent(),
                                        evaluation_match_count=24),
                         ReferenceAgent(name='hand_written_agent', instance=HandWrittenAgent(),
-                                       evaluation_match_count=24)
+                                       evaluation_match_count=80)
                         ]
 
 
