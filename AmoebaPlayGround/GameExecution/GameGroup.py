@@ -55,7 +55,7 @@ class GameGroup:
             sum_turn_length_sec += turn_length_per_game_sec
             self.games = self.filter_active_games()
             self.progress_printer.print_progress(len(self.finished_games) / number_of_games, turn,
-                                                 turn_length_per_game_sec, step_statistics)
+                                                 turn_length_per_game_sec, step_statistics, len(self.games))
             turn += 1
 
         avg_time_per_turn_per_game = sum_turn_length_sec / turn

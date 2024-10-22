@@ -116,7 +116,7 @@ class AmoebaTrainer:
                 _, training_samples_from_agent, group_statistics = self.game_executor.play_games_between_agents(
                     self.config["games_per_episode"], self.learning_agent, teaching_agent, self.map_size,
                     evaluation=False,
-                    print_progress=True)
+                    print_progress_active=True)
 
                 training_samples_from_agent.filter_samples(self.calculate_training_sample_entropy_cutoff(),
                                                            self.calculate_training_sample_cutoff())

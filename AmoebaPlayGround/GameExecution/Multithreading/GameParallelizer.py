@@ -9,7 +9,7 @@ from AmoebaPlayGround.GameExecution.GameGroup import GameGroup
 from AmoebaPlayGround.GameExecution.MoveSelector import MOVE_SELECTION_STRATEGIES
 from AmoebaPlayGround.GameExecution.Multithreading.InferenceServer import InferenceServer, InferenceServerWrapper
 from AmoebaPlayGround.GameExecution.ProgressPrinter import BaseProgressPrinter, ParallelProgressPrinter, \
-    ParallelProgressPrinterActor
+    ParallelProgressTrackerActor, print_progress
 from AmoebaPlayGround.GameExecution.SingleThreadGameExecutor import GameExecutor
 from AmoebaPlayGround.Training.TrainingSampleGenerator import SymmetricTrainingSampleGenerator, \
     PlaceholderTrainingSampleGenerator
@@ -33,7 +33,7 @@ class ParallelGameExecutor(GameExecutor):
         self.inference_server_count = config['inference_server_count']
 
         self.worker_count = self.workers_per_server * self.inference_server_count
-        self.printer_actor = ParallelProgressPrinterActor.remote(self.worker_count)
+        self.progress_tracker_actor = ParallelProgressTrackerActor.remote(self.worker_count)
 
         self.per_worker_batch_size = config["inference_batch_size"] / self.workers_per_server * 2
         print(f"{self.per_worker_batch_size} parallel searches per worker")
@@ -51,7 +51,7 @@ class ParallelGameExecutor(GameExecutor):
         for server_index, inference_server in enumerate(self.inference_servers):
             for worker_index in range(self.workers_per_server):
                 worker_id = server_index * self.workers_per_server + worker_index
-                worker = GameExecutorWorker.remote(worker_id, self.printer_actor, move_selection_strategy)
+                worker = GameExecutorWorker.remote(worker_id, self.progress_tracker_actor, move_selection_strategy)
                 workers.append(worker)
         self.worker_pool = ActorPool(workers)
 
@@ -64,17 +64,17 @@ class ParallelGameExecutor(GameExecutor):
         self.inference_server_pool = ActorPool(self.inference_servers)
 
     def play_games_between_agents(self, game_count, agent_1, agent_2, map_size, evaluation=False,
-                                  print_progress=True):
+                                  print_progress_active=True):
         self.distribute_weights(agent_1, agent_2)
         game_groups = self.generate_workloads(agent_1, agent_2, map_size, game_count, self.max_parallel_games,
                                               evaluation,
-                                              print_progress)
+                                              print_progress_active)
 
         for inference_server in self.inference_servers:
             ray.get(inference_server.game_group_started.remote(self.workers_per_server))
 
-        if print_progress:
-            ray.get(self.printer_actor.reset.remote())
+        if print_progress_active:
+            ray.get(self.progress_tracker_actor.reset.remote())
             self.group_started(agent_1.get_name(), agent_2.get_name(), game_count)
         time_before_play = time.time()
         if agent_1 == agent_2:
@@ -84,9 +84,13 @@ class ParallelGameExecutor(GameExecutor):
             results = self.worker_pool.map(lambda worker, params: worker.play_games_between_agents.remote(*params),
                                            game_groups)
 
+        while not ray.get(self.progress_tracker_actor.have_all_games_finished.remote()):
+            print_progress(*ray.get(self.progress_tracker_actor.get_combined_metrics.remote()))
+            time.sleep(0.5)
+
         games, training_samples, statistics, avg_turn_time = self.merge_results(results)
         time_after_play = time.time()
-        if print_progress:
+        if print_progress_active:
             total_time = time_after_play - time_before_play
             searches_per_step = 0
             if type(agent_1) is MCTSAgent:
