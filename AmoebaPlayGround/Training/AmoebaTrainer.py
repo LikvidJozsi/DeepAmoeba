@@ -1,7 +1,7 @@
 import glob
 import os
 import pickle
-
+import time
 import toml
 
 from AmoebaPlayGround.GameExecution.SingleThreadGameExecutor import SingleThreadGameExecutor
@@ -108,7 +108,7 @@ class AmoebaTrainer:
             training_samples_for_episode = TrainingSampleCollection()
             self.training_dataset_generator.set_episode_window_width(self.calculate_episode_window_width())
             self.print_episode_information()
-
+            before_self_play = time.perf_counter()
             for teacher_index, teaching_agent in enumerate(self.teaching_agents):
                 print('Playing games against ' + teaching_agent.get_name())
                 teaching_agent.set_training_mode()
@@ -117,25 +117,32 @@ class AmoebaTrainer:
                     self.config["games_per_episode"], self.learning_agent, teaching_agent, self.map_size,
                     evaluation=False,
                     print_progress_active=True)
-
                 training_samples_from_agent.filter_samples(self.calculate_training_sample_entropy_cutoff(),
                                                            self.calculate_training_sample_cutoff())
 
                 statistics.merge_statistics(group_statistics)
                 training_samples_for_episode.extend(training_samples_from_agent)
-
+            after_self_play = time.perf_counter()
+            print("self play took {0} minutes".format((after_self_play-before_self_play)/60))
+            self.logger.log('self_play_time', after_self_play-before_self_play)
             self.training_dataset_generator.add_episode(training_samples_for_episode)
             self.learning_agent.get_neural_network_model().copy_weights_into(
                 self.learning_agent_with_old_state.get_neural_network_model())
             statistics.log(self.logger)
             print('Training agent:')
             self.train_learing_agent(statistics)
+            after_training= time.perf_counter()
+            print("training took {0} minutes".format((after_training-after_self_play)/60))
+            self.logger.log('training_time', after_training-after_self_play)
 
             print('Evaluating agent:')
             self.learning_agent.set_evaluation_mode()
             self.learning_agent_with_old_state.set_evaluation_mode()
             self.evaluator.evaluate_agent(self.learning_agent, self.logger)
 
+            after_evaluation = time.perf_counter()
+            print("training took {0} minutes".format((after_evaluation-after_training)/60))
+            self.logger.log('evaluation_time', after_evaluation-after_training)
             self.end_episode()
 
     def print_episode_information(self):
